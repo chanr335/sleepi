@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Trophy, Zap, User } from 'lucide-react';
+import { Home, Trophy, Zap, User, Headphones } from 'lucide-react'; // 👈 added Headphones
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../index.css';
 
@@ -12,6 +12,7 @@ const Layout = ({ children }) => {
     { id: 'home', path: '/', icon: Home, label: 'Home' },
     { id: 'leaderboard', path: '/leaderboard', icon: Trophy, label: 'Rank' },
     { id: 'coach', path: '/coach', icon: Zap, label: 'Coach' },
+    { id: 'soundscape', path: '/soundscape', icon: Headphones, label: 'Sounds' }, // 👈 new tab
     { id: 'profile', path: '/profile', icon: User, label: 'Profile' },
   ];
 
@@ -46,25 +47,29 @@ const Layout = ({ children }) => {
         </AnimatePresence>
       </main>
 
-      <nav className="bottom-nav">
+      <nav className="bottom-nav icons-only">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
               onClick={() => navigate(item.path)}
-              className={`nav-item ${isActive ? 'active' : ''}`}
+              className={`nav-item small ${isActive ? 'active' : ''}`}
             >
-              {isActive && <motion.div layoutId="nav-glow" className="nav-indicator" />}
-              <item.icon size={24} className="nav-icon" />
-              <span className="nav-label">{item.label}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="nav-glow"
+                  className="nav-indicator"
+                />
+              )}
+              <item.icon size={22} className="nav-icon" />
             </button>
           );
         })}
       </nav>
+
     </div>
   );
 };
 
 export default Layout;
-
