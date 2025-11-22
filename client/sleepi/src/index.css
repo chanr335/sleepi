@@ -228,10 +228,14 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 .stat-label { font-size: 13px; color: var(--text-muted); }
 
 .icon-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;   
   width: fit-content;
   padding: 10px;
   border-radius: 12px;
 }
+
 .icon-indigo { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
 .icon-cyan { background: rgba(6, 182, 212, 0.2); color: #22d3ee; }
 .icon-yellow { background: rgba(250, 204, 21, 0.15); color: #facc15; }
