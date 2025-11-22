@@ -1,8 +1,12 @@
 import pandas as pd
+from pathlib import Path
 
 # 1. Input & output file names
-INPUT_CSV = "sleep_data.csv"       # your existing file
-OUTPUT_CSV = "sleep_by_night.csv"  # new file we will create
+# Get paths relative to this script's location
+SCRIPT_DIR = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+INPUT_CSV = PROJECT_ROOT / "scripts" / "sleep_data.csv"
+OUTPUT_CSV = PROJECT_ROOT / "data" / "parsed" / "sleep_by_night.csv"
 
 def main():
     # 2. Load the CSV
@@ -49,7 +53,10 @@ def main():
     # 9. Reset index so 'night' becomes a normal column
     summary = summary.reset_index()
 
-    # 10. Save to CSV
+    # 10. Ensure output directory exists
+    OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+
+    # 11. Save to CSV
     summary.to_csv(OUTPUT_CSV, index=False)
     print(f"Done! Wrote nightly sleep breakdown to {OUTPUT_CSV}")
 
