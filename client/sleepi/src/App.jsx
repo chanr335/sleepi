@@ -10,13 +10,13 @@ function App() {
   return (
     <>
       <BrowserRouter>
+        <h1>Sleepi</h1>
         <nav>
           <Link to="/">Home</Link> |{" "}
           <Link to="/coach">Coach</Link> |{" "}
           <Link to="/leaderboard">Leaderboard</Link> |{" "}
           <Link to="/profile">Profile</Link>
         </nav>
-        <h1>Sleepi</h1>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/coach" element={<Coach />} />
