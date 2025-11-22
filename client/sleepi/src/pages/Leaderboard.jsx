@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy } from 'lucide-react';
+import { Trophy, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlassCard from '../components/GlassCard';
 import '../index.css';
@@ -16,13 +16,47 @@ const CATEGORIES = [
   { id: 'deep', label: 'Deep', endpoint: 'deep', column: 'Deep' },
 ];
 
+const DATE_FILTERS = [
+  { id: 'all', label: 'All Time', days: null },
+  { id: 'week', label: 'Last Week', days: 7 },
+  { id: 'month', label: 'Last Month', days: 30 },
+  { id: '3months', label: 'Last 3 Months', days: 90 },
+  { id: '6months', label: 'Last 6 Months', days: 180 },
+  { id: 'year', label: 'Last Year', days: 365 },
+];
+
 const Leaderboard = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('total');
+  const [selectedDateFilter, setSelectedDateFilter] = useState('all');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const fetchLeaderboardData = async (category) => {
+  const filterDataByDate = (data, dateFilterId) => {
+    if (dateFilterId === 'all') {
+      return data;
+    }
+
+    const dateFilter = DATE_FILTERS.find(filter => filter.id === dateFilterId);
+    if (!dateFilter || !dateFilter.days) {
+      return data;
+    }
+
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    const cutoffDate = new Date(today);
+    cutoffDate.setDate(cutoffDate.getDate() - dateFilter.days);
+    cutoffDate.setHours(0, 0, 0, 0); // Start of that day
+
+    return data.filter(entry => {
+      if (!entry.night) return false;
+      const entryDate = new Date(entry.night);
+      return entryDate >= cutoffDate && entryDate <= today;
+    });
+  };
+
+  const fetchLeaderboardData = async (category, dateFilterId) => {
     try {
       setLoading(true);
       
@@ -50,9 +84,12 @@ const Leaderboard = () => {
             }
             const sleepData = await sleepResponse.json();
             
+            // Filter by date range
+            const dateFilteredData = filterDataByDate(sleepData, dateFilterId);
+            
             // Calculate average sleep hours for the selected category
             // Filter out entries with 0 or negative values
-            const validSleepData = sleepData.filter(entry => entry[categoryConfig.column] > 0);
+            const validSleepData = dateFilteredData.filter(entry => entry[categoryConfig.column] > 0);
             const averageSleep = validSleepData.length > 0
               ? validSleepData.reduce((sum, entry) => sum + entry[categoryConfig.column], 0) / validSleepData.length
               : 0;
@@ -97,8 +134,8 @@ const Leaderboard = () => {
   };
 
   useEffect(() => {
-    fetchLeaderboardData(selectedCategory);
-  }, [selectedCategory]);
+    fetchLeaderboardData(selectedCategory, selectedDateFilter);
+  }, [selectedCategory, selectedDateFilter]);
 
   const formatSleepHours = (hours) => {
     if (hours === 0) return '0 hrs';
@@ -159,7 +196,7 @@ const Leaderboard = () => {
           <AnimatePresence mode="popLayout">
             {users.map((user, index) => (
               <motion.div
-                key={`${user.username}-${selectedCategory}`}
+                key={`${user.username}-${selectedCategory}-${selectedDateFilter}`}
                 layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -212,13 +249,14 @@ const Leaderboard = () => {
         </div>
       )}
 
-      {/* Category Buttons - Moved to bottom for better mobile accessibility */}
+      {/* Category Buttons and Date Filter - Moved to bottom for better mobile accessibility */}
       <div style={{ 
         display: 'flex', 
         gap: '0.5rem', 
         marginTop: '1.5rem',
         flexWrap: 'wrap',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        alignItems: 'center'
       }}>
         {CATEGORIES.map((category) => (
           <button
@@ -250,7 +288,119 @@ const Leaderboard = () => {
             {category.label}
           </button>
         ))}
+        
+        {/* Date Filter Dropdown */}
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            style={{
+              padding: '0.5rem 1rem',
+              paddingRight: '2rem',
+              borderRadius: '0.5rem',
+              border: 'none',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              color: 'rgba(255, 255, 255, 0.8)',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '400',
+              transition: 'all 0.2s ease',
+              backdropFilter: 'blur(10px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            }}
+          >
+            {DATE_FILTERS.find(f => f.id === selectedDateFilter)?.label || 'All Time'}
+            <ChevronDown 
+              size={16} 
+              style={{ 
+                position: 'absolute',
+                right: '0.5rem',
+                transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease'
+              }} 
+            />
+          </button>
+          
+          {isDropdownOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                marginBottom: '0.5rem',
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '0.5rem',
+                padding: '0.25rem',
+                minWidth: '150px',
+                zIndex: 1000,
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              {DATE_FILTERS.map((filter) => (
+                <button
+                  key={filter.id}
+                  onClick={() => {
+                    setSelectedDateFilter(filter.id);
+                    setIsDropdownOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.375rem',
+                    border: 'none',
+                    backgroundColor: selectedDateFilter === filter.id ? 'rgba(79, 70, 229, 0.3)' : 'transparent',
+                    color: selectedDateFilter === filter.id ? '#fff' : 'rgba(255, 255, 255, 0.8)',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    textAlign: 'left',
+                    fontWeight: selectedDateFilter === filter.id ? '600' : '400',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedDateFilter !== filter.id) {
+                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedDateFilter !== filter.id) {
+                      e.target.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </div>
       </div>
+      
+      {/* Click outside to close dropdown */}
+      {isDropdownOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999,
+          }}
+          onClick={() => setIsDropdownOpen(false)}
+        />
+      )}
     </div>
   );
 };
