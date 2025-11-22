@@ -36,6 +36,17 @@ class ScheduleResponse(BaseModel):
     """The overall structure for the AI's schedule output."""
     personalized_schedule: List[ScheduleEntry] = Field(..., description="A 7-day schedule to improve sleep.")
 
+class SleepLogEntry(BaseModel):
+    """Structure for logging a new sleep entry."""
+    night: str = Field(..., description="Date of the night (e.g., '2025-01-15').")
+    AsleepUnspecified: float = Field(default=0.0, description="Unspecified sleep time in hours.")
+    Awake: float = Field(default=0.0, description="Time awake during night in hours.")
+    Core: float = Field(default=0.0, description="Core sleep time in hours.")
+    Deep: float = Field(default=0.0, description="Deep sleep time in hours.")
+    InBed: float = Field(default=0.0, description="Time in bed in hours.")
+    REM: float = Field(default=0.0, description="REM sleep time in hours.")
+    TotalSleepHours: float = Field(..., description="Total sleep hours.")
+
 # --- FastAPI Setup ---
 app = FastAPI(
     title="Sleepi Backend API",
@@ -167,6 +178,61 @@ def get_asleep_unspecified(username: str):
 def get_total(username: str):
     """Returns total sleep hours per night for the given user."""
     return get_sleep_value(username, "TotalSleepHours")
+
+
+@app.post("/sleep/{username}/log")
+def log_sleep(username: str, sleep_entry: SleepLogEntry):
+    """
+    Logs a new sleep entry for the given user by appending it to their CSV file.
+    Creates the file if it doesn't exist.
+    
+    Expected CSV columns (in order): night, AsleepUnspecified, Awake, Core, Deep, InBed, REM, TotalSleepHours
+    """
+    file_path = DATA_DIR / f"sleep_by_night_{username}.csv"
+    
+    # Define column order to match existing CSV format
+    column_order = ["night", "AsleepUnspecified", "Awake", "Core", "Deep", "InBed", "REM", "TotalSleepHours"]
+    
+    # Prepare the new row as a dictionary
+    new_row = {
+        "night": sleep_entry.night,
+        "AsleepUnspecified": sleep_entry.AsleepUnspecified,
+        "Awake": sleep_entry.Awake,
+        "Core": sleep_entry.Core,
+        "Deep": sleep_entry.Deep,
+        "InBed": sleep_entry.InBed,
+        "REM": sleep_entry.REM,
+        "TotalSleepHours": sleep_entry.TotalSleepHours
+    }
+    
+    try:
+        # Check if file exists
+        if file_path.exists():
+            # Read existing CSV
+            df = pd.read_csv(file_path)
+            # Append new row
+            new_df = pd.DataFrame([new_row])
+            df = pd.concat([df, new_df], ignore_index=True)
+        else:
+            # Create new DataFrame with the entry
+            df = pd.DataFrame([new_row])
+        
+        # Ensure columns are in the correct order
+        df = df[column_order]
+        
+        # Save to CSV
+        df.to_csv(file_path, index=False)
+        
+        return {
+            "message": f"Sleep entry logged successfully for {username}",
+            "night": sleep_entry.night,
+            "total_sleep_hours": sleep_entry.TotalSleepHours
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to log sleep entry: {str(e)}"
+        )
 
 
 # --- AI Coach Endpoints ---
