@@ -433,3 +433,61 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
   border-bottom-right-radius: 4px;
   box-shadow: 0 0 10px var(--primary-glow);
 }
+
+/* bottom nav base – keep your existing styles, but tweak spacing */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  background: rgba(26, 26, 26, 0.85);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  justify-content: space-evenly;   /* was center + gap, now tighter */
+  align-items: center;
+  z-index: 50;
+  padding-bottom: 10px;           /* a bit less than before */
+}
+
+/* each icon button */
+.nav-item {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 48px;        /* narrower so icons are closer */
+  position: relative;
+  cursor: pointer;
+}
+
+/* HIDE label text but keep it in DOM for accessibility */
+.nav-label {
+  display: none;
+}
+
+/* icon styling */
+.nav-icon {
+  color: rgba(165, 180, 252, 0.5);
+  transition: color 0.3s;
+  font-size: 22px;
+}
+
+/* active state */
+.nav-item.active .nav-icon {
+  color: var(--primary);
+  filter: drop-shadow(0 0 8px var(--primary-glow));
+}
+
+/* move indicator UNDER the icon instead of on top */
+.nav-indicator {
+  position: absolute;
+  bottom: -8px;                 /* 👈 was top: -1px before */
+  top: auto;
+  width: 24px;
+  height: 4px;
+  background: var(--primary);
+  border-radius: 999px;
+  box-shadow: 0 0 10px var(--primary-glow);
+}
