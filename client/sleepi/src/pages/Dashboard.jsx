@@ -104,15 +104,7 @@ const Dashboard = () => {
           </div>
           
           <div className="sleep-metric-item">
-            <div className="icon-box icon-pink"><Bed size={18} /></div>
-            <div className="sleep-metric-info">
-              <span className="sleep-metric-value">{lastNightData ? formatHours(lastNightData.InBed) : "0h 0m"}</span>
-              <span className="sleep-metric-label">In Bed</span>
-            </div>
-          </div>
-          
-          <div className="sleep-metric-item">
-            <div className="icon-box icon-cyan"><Brain size={18} /></div>
+            <div className="icon-box icon-pink"><Brain size={18} /></div>
             <div className="sleep-metric-info">
               <span className="sleep-metric-value">{lastNightData ? formatHours(lastNightData.REM) : "0h 0m"}</span>
               <span className="sleep-metric-label">REM</span>
