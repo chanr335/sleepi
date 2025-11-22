@@ -1,16 +1,17 @@
 import os
 import json
 import httpx
+import io
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Dict, Any
 from pathlib import Path
 from dotenv import load_dotenv
 
 # Load environment variables from .env file (if it exists)
-load_dotenv()
+load_dotenv() 
 
 # --- Configuration ---
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "parsed"
@@ -22,7 +23,12 @@ if not GEMINI_API_KEY:
 MODEL_NAME = "gemini-2.5-flash-preview-09-2025"
 API_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
 
-# --- Pydantic Schemas ---
+# --- Pydantic Schemas for Request and Response ---
+
+class Part(BaseModel):
+    """Represents a single part of a message (currently only text is supported)."""
+    text: str
+
 
 class ScheduleEntry(BaseModel):
     """Defines the structure for a single day in the generated schedule."""
@@ -36,10 +42,11 @@ class ScheduleResponse(BaseModel):
     """The overall structure for the AI's schedule output."""
     personalized_schedule: List[ScheduleEntry] = Field(..., description="A 7-day schedule to improve sleep.")
 
+
 # --- FastAPI Setup ---
 app = FastAPI(
-    title="Sleepi Backend API",
-    description="Sleep data API and AI-powered sleep schedule generator.",
+    title="Gemini Sleep Schedule Backend",
+    description="Analyzes sleep data and generates a personalized schedule using structured AI output.",
 )
 
 # Enable CORS (Cross-Origin Resource Sharing)
@@ -51,125 +58,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Helper Functions ---
-
-def get_available_users():
-    """
-    Returns a list of usernames by scanning the CSV filenames.
-    Example: sleep_by_night_eileen.csv → eileen
-    """
-    users = []
-    for file in DATA_DIR.glob("sleep_by_night_*.csv"):
-        # Extract "eileen" from "sleep_by_night_eileen.csv"
-        username = file.stem.replace("sleep_by_night_", "")
-        users.append(username)
-    return users
-
-
-def get_sleep_value(username: str, column_name: str):
-    """
-    Helper function to get a specific sleep value column for a user.
-    Returns the data or raises HTTPException if user/file not found.
-    """
-    file_path = DATA_DIR / f"sleep_by_night_{username}.csv"
-
-    if not file_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail=f"No sleep data found for user '{username}'. Expected file: {file_path.name}"
-        )
-
-    df = pd.read_csv(file_path)
-    
-    if column_name not in df.columns:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Column '{column_name}' not found in data"
-        )
-    
-    # Return night and the specific sleep value
-    result = df[["night", column_name]].to_dict(orient="records")
-    return result
-
 # --- Routes ---
 
 @app.get("/")
 async def root():
     """Simple root endpoint to confirm the server is running."""
-    return {"message": "Sleepi Backend API is running with FastAPI."}
+    return {"message": "Gemini Sleep Schedule Backend is running with FastAPI."}
 
-
-# --- Sleep Data Endpoints ---
-
-@app.get("/sleep/users")
-def list_users():
-    """
-    Returns list of users who have CSV files.
-    """
-    return {"users": get_available_users()}
-
-
-@app.get("/sleep/{username}")
-def get_sleep_for_user(username: str):
-    """
-    Returns sleep data for the given username by loading the correct CSV.
-    Expects files named like: sleep_by_night_<username>.csv
-    """
-    file_path = DATA_DIR / f"sleep_by_night_{username}.csv"
-
-    if not file_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail=f"No sleep data found for user '{username}'. Expected file: {file_path.name}"
-        )
-
-    df = pd.read_csv(file_path)
-    return df.to_dict(orient="records")
-
-
-@app.get("/sleep/{username}/awake")
-def get_awake(username: str):
-    """Returns awake time (in hours) per night for the given user."""
-    return get_sleep_value(username, "Awake")
-
-
-@app.get("/sleep/{username}/core")
-def get_core(username: str):
-    """Returns core sleep time (in hours) per night for the given user."""
-    return get_sleep_value(username, "Core")
-
-
-@app.get("/sleep/{username}/deep")
-def get_deep(username: str):
-    """Returns deep sleep time (in hours) per night for the given user."""
-    return get_sleep_value(username, "Deep")
-
-
-@app.get("/sleep/{username}/rem")
-def get_rem(username: str):
-    """Returns REM sleep time (in hours) per night for the given user."""
-    return get_sleep_value(username, "REM")
-
-
-@app.get("/sleep/{username}/inbed")
-def get_inbed(username: str):
-    """Returns time in bed (in hours) per night for the given user."""
-    return get_sleep_value(username, "InBed")
-
-
-@app.get("/sleep/{username}/asleep-unspecified")
-def get_asleep_unspecified(username: str):
-    """Returns unspecified sleep time (in hours) per night for the given user."""
-    return get_sleep_value(username, "AsleepUnspecified")
-
-
-@app.get("/sleep/{username}/total")
-def get_total(username: str):
-    """Returns total sleep hours per night for the given user."""
-    return get_sleep_value(username, "TotalSleepHours")
-
-
-# --- AI Coach Endpoints ---
 
 @app.get('/generate_schedule/{username}')
 async def generate_schedule(username: str):
