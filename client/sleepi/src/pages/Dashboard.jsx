@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Moon, Activity } from 'lucide-react';
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
 import CircularProgress from '../components/CircularProgress';
@@ -16,12 +16,24 @@ const Dashboard = () => {
     { day: 'Sat', hours: 9.0 },
     { day: 'Sun', hours: 7.4 },
   ]);
+  const [lastNightData, setLastNightData] = useState(null);
+
+  // Helper function to format hours to "Xh Ym" format
+  const formatHours = (hours) => {
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return `${h}h ${m}m`;
+  };
 
   useEffect(() => {
     const fetchSleepData = async () => {
       try {
         const response = await fetch('http://127.0.0.1:8000/sleep/ryan');
         const data = await response.json();
+        
+        // Get the last data point for "Last Night's Sleep"
+        const lastPoint = data[data.length - 1];
+        setLastNightData(lastPoint);
         
         // Get the last 5 data points
         const lastFivePoints = data.slice(-5);
@@ -60,7 +72,11 @@ const Dashboard = () => {
 
       <GlassCard className="center-content">
         <h3 className="card-label">Last Night's Sleep</h3>
-        <CircularProgress value={7.75} max={9} label="7h 45m" subLabel="Goal: 8h 00m" />
+        <CircularProgress 
+          value={lastNightData ? lastNightData.TotalSleepHours : 0} 
+          max={9} 
+          label={lastNightData ? formatHours(lastNightData.TotalSleepHours) : "0h 0m"} 
+        />
         <div className="badge badge-green">Optimal Range</div>
       </GlassCard>
 
@@ -68,15 +84,15 @@ const Dashboard = () => {
         <GlassCard className="stat-card">
           <div className="icon-box icon-indigo"><Moon size={20} /></div>
           <div className="stat-info">
-            <span className="stat-value">1h 59m</span>
+            <span className="stat-value">{lastNightData ? formatHours(lastNightData.Deep) : "0h 0m"}</span>
             <span className="stat-label">Deep Sleep</span>
           </div>
         </GlassCard>
         <GlassCard className="stat-card">
           <div className="icon-box icon-cyan"><Activity size={20} /></div>
           <div className="stat-info">
-            <span className="stat-value">86/100</span>
-            <span className="stat-label">Sleep Score</span>
+            <span className="stat-value">{lastNightData ? formatHours(lastNightData.REM) : "0h 0m"}</span>
+            <span className="stat-label">REM Sleep</span>
           </div>
         </GlassCard>
       </div>
@@ -85,8 +101,17 @@ const Dashboard = () => {
         <h3 className="card-title">Weekly Trend</h3>
         <div className="chart-container">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sleepData}>
+            <BarChart data={sleepData} margin={{ left: 5, right: 10, top: 5, bottom: 5 }}>
               <XAxis dataKey="day" stroke="#a5b4fc" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis 
+                stroke="#a5b4fc" 
+                fontSize={12} 
+                tickLine={false} 
+                axisLine={false}
+                domain={['dataMin - 1', 'dataMax + 1']}
+                tickFormatter={(value) => `${value.toFixed(1)}h`}
+                width={50}
+              />
               <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#4338ca', borderRadius: '12px', color: '#fff' }} />
               <Bar dataKey="hours" radius={[4, 4, 4, 4]}>
                 {sleepData.map((entry, index) => (
@@ -100,7 +125,6 @@ const Dashboard = () => {
 
       <div className="button-group">
         <Button>Log My Sleep</Button>
-        <Button variant="outline">Connect Wearable</Button>
       </div>
     </div>
   );
