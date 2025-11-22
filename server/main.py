@@ -37,15 +37,15 @@ class ScheduleResponse(BaseModel):
     personalized_schedule: List[ScheduleEntry] = Field(..., description="A 7-day schedule to improve sleep.")
 
 class SleepLogEntry(BaseModel):
-    """Structure for logging a new sleep entry."""
+    """Structure for logging a new sleep entry. Only night and TotalSleepHours are required."""
     night: str = Field(..., description="Date of the night (e.g., '2025-01-15').")
+    TotalSleepHours: float = Field(..., description="Total sleep hours.")
     AsleepUnspecified: float = Field(default=0.0, description="Unspecified sleep time in hours.")
     Awake: float = Field(default=0.0, description="Time awake during night in hours.")
     Core: float = Field(default=0.0, description="Core sleep time in hours.")
     Deep: float = Field(default=0.0, description="Deep sleep time in hours.")
     InBed: float = Field(default=0.0, description="Time in bed in hours.")
     REM: float = Field(default=0.0, description="REM sleep time in hours.")
-    TotalSleepHours: float = Field(..., description="Total sleep hours.")
 
 # --- FastAPI Setup ---
 app = FastAPI(
@@ -185,6 +185,12 @@ def log_sleep(username: str, sleep_entry: SleepLogEntry):
     """
     Logs a new sleep entry for the given user by appending it to their CSV file.
     Creates the file if it doesn't exist.
+    
+    Required fields:
+    - night: Date of the night (e.g., '2025-01-15')
+    - TotalSleepHours: Total sleep hours
+    
+    All other fields (AsleepUnspecified, Awake, Core, Deep, InBed, REM) default to 0.0 if not provided.
     
     Expected CSV columns (in order): night, AsleepUnspecified, Awake, Core, Deep, InBed, REM, TotalSleepHours
     """
