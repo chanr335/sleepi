@@ -7,6 +7,22 @@ import "../index.css";
 export default function Soundscape() {
   const [aiAudioUrl, setAiAudioUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [durationSeconds, setDurationSeconds] = useState(300); // Default 5 minutes (300 seconds)
+
+  // Convert seconds to readable format
+  const formatDuration = (seconds) => {
+    if (seconds < 60) {
+      return `${seconds} seconds`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return secs > 0 ? `${minutes}m ${secs}s` : `${minutes} minutes`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours} hour`;
+    }
+  };
 
   const generateAIASMR = async () => {
     setLoading(true);
@@ -17,8 +33,8 @@ export default function Soundscape() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: "demo-user-1",
-          minutes: 5,
+          username: "sarah",  // You can change this to any username from your sleep data
+          duration_seconds: durationSeconds,
           mood: "stressed but trying to relax"
         }),
       });
@@ -56,11 +72,38 @@ export default function Soundscape() {
           We generate a soothing ASMR-style narration using your personal sleep profile.
         </p>
 
+        <div style={{ marginTop: 24, width: "100%" }}>
+          <label style={{ display: "block", marginBottom: 12, fontSize: "14px", fontWeight: 500 }}>
+            Duration: {formatDuration(durationSeconds)}
+          </label>
+          <input
+            type="range"
+            min="10"
+            max="1800"
+            step="10"
+            value={durationSeconds}
+            onChange={(e) => setDurationSeconds(parseInt(e.target.value))}
+            disabled={loading}
+            style={{
+              width: "100%",
+              height: "8px",
+              borderRadius: "4px",
+              outline: "none",
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: "12px", color: "#888" }}>
+            <span>10s</span>
+            <span>30m</span>
+          </div>
+        </div>
+
         <Button
           variant="primary"
           onClick={generateAIASMR}
           disabled={loading}
-          style={{ marginTop: 20 }}
+          style={{ marginTop: 24 }}
         >
           {loading ? "Generating..." : "Generate My Sleep Story"}
         </Button>
