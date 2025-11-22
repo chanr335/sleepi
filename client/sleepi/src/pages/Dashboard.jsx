@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Activity } from 'lucide-react';
+import { Moon, Activity, Sun, Zap, Bed, Brain } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
@@ -28,7 +28,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchSleepData = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/sleep/ryan');
+        const response = await fetch('http://127.0.0.1:8000/sleep/eileen');
         const data = await response.json();
         
         // Get the last data point for "Last Night's Sleep"
@@ -66,8 +66,7 @@ const Dashboard = () => {
   return (
     <div className="page-content">
       <header className="page-header">
-        <h1>Welcome Back!</h1>
-        <p>Here's your sleep dashboard.</p>
+        <h1>Welcome Back Eileen!</h1>
       </header>
 
       <GlassCard className="center-content">
@@ -78,24 +77,49 @@ const Dashboard = () => {
           label={lastNightData ? formatHours(lastNightData.TotalSleepHours) : "0h 0m"} 
         />
         <div className="badge badge-green">Optimal Range</div>
+        
+        <div className="sleep-metrics-grid">
+          <div className="sleep-metric-item">
+            <div className="icon-box icon-yellow"><Sun size={18} /></div>
+            <div className="sleep-metric-info">
+              <span className="sleep-metric-value">{lastNightData ? formatHours(lastNightData.Awake) : "0h 0m"}</span>
+              <span className="sleep-metric-label">Awake</span>
+            </div>
+          </div>
+          
+          <div className="sleep-metric-item">
+            <div className="icon-box icon-cyan"><Zap size={18} /></div>
+            <div className="sleep-metric-info">
+              <span className="sleep-metric-value">{lastNightData ? formatHours(lastNightData.Core) : "0h 0m"}</span>
+              <span className="sleep-metric-label">Core</span>
+            </div>
+          </div>
+          
+          <div className="sleep-metric-item">
+            <div className="icon-box icon-indigo"><Moon size={18} /></div>
+            <div className="sleep-metric-info">
+              <span className="sleep-metric-value">{lastNightData ? formatHours(lastNightData.Deep) : "0h 0m"}</span>
+              <span className="sleep-metric-label">Deep</span>
+            </div>
+          </div>
+          
+          <div className="sleep-metric-item">
+            <div className="icon-box icon-pink"><Bed size={18} /></div>
+            <div className="sleep-metric-info">
+              <span className="sleep-metric-value">{lastNightData ? formatHours(lastNightData.InBed) : "0h 0m"}</span>
+              <span className="sleep-metric-label">In Bed</span>
+            </div>
+          </div>
+          
+          <div className="sleep-metric-item">
+            <div className="icon-box icon-cyan"><Brain size={18} /></div>
+            <div className="sleep-metric-info">
+              <span className="sleep-metric-value">{lastNightData ? formatHours(lastNightData.REM) : "0h 0m"}</span>
+              <span className="sleep-metric-label">REM</span>
+            </div>
+          </div>
+        </div>
       </GlassCard>
-
-      <div className="grid-2-col">
-        <GlassCard className="stat-card">
-          <div className="icon-box icon-indigo"><Moon size={20} /></div>
-          <div className="stat-info">
-            <span className="stat-value">{lastNightData ? formatHours(lastNightData.Deep) : "0h 0m"}</span>
-            <span className="stat-label">Deep Sleep</span>
-          </div>
-        </GlassCard>
-        <GlassCard className="stat-card">
-          <div className="icon-box icon-cyan"><Activity size={20} /></div>
-          <div className="stat-info">
-            <span className="stat-value">{lastNightData ? formatHours(lastNightData.REM) : "0h 0m"}</span>
-            <span className="stat-label">REM Sleep</span>
-          </div>
-        </GlassCard>
-      </div>
 
       <GlassCard>
         <h3 className="card-title">Weekly Trend</h3>
