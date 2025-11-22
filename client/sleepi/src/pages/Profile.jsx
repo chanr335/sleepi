@@ -3,6 +3,7 @@ import { User, Smartphone, LogOut } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
 import '../index.css';
+import sleepyPic from "../assets/sleepyPic.jpg";   // adjust path as needed
 
 const Profile = () => {
   const [dailyRemindersOn, setDailyRemindersOn] = useState(true);
@@ -16,7 +17,7 @@ const Profile = () => {
 
       <div className="profile-header">
         <div className="profile-avatar">
-          <User size={40} />
+          <img src={sleepyPic} alt="Profile" className="avatar-img" />
         </div>
         <h2>Sleepy Person</h2>
       </div>
