@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Headphones } from "lucide-react";
 import GlassCard from "../components/GlassCard";
 import Button from "../components/Button";
@@ -8,6 +8,74 @@ export default function Soundscape() {
   const [aiAudioUrl, setAiAudioUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState(300); // Default 5 minutes (300 seconds)
+
+  // Add slider styles
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.id = "duration-slider-styles";
+    style.textContent = `
+      #duration-slider::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 6px;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+      }
+      
+      #duration-slider::-moz-range-track {
+        width: 100%;
+        height: 6px;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        border: none;
+      }
+      
+      #duration-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #06b6d4;
+        cursor: pointer;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 2px 6px rgba(6, 182, 212, 0.4);
+        margin-top: -6px;
+      }
+      
+      #duration-slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #06b6d4;
+        cursor: pointer;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 2px 6px rgba(6, 182, 212, 0.4);
+      }
+      
+      #duration-slider::-webkit-slider-thumb:hover {
+        background: #22d3ee;
+        box-shadow: 0 2px 8px rgba(6, 182, 212, 0.6);
+      }
+      
+      #duration-slider::-moz-range-thumb:hover {
+        background: #22d3ee;
+        box-shadow: 0 2px 8px rgba(6, 182, 212, 0.6);
+      }
+    `;
+    
+    if (!document.getElementById("duration-slider-styles")) {
+      document.head.appendChild(style);
+    }
+    
+    return () => {
+      const existingStyle = document.getElementById("duration-slider-styles");
+      if (existingStyle) {
+        document.head.removeChild(existingStyle);
+      }
+    };
+  }, []);
 
   // Convert seconds to readable format
   const formatDuration = (seconds) => {
@@ -72,25 +140,42 @@ export default function Soundscape() {
           We generate a soothing ASMR-style narration using your personal sleep profile.
         </p>
 
-        <div style={{ marginTop: 24, width: "100%" }}>
+        <div style={{ marginTop: 24, width: "100%", padding: "8px 0" }}>
           <label style={{ display: "block", marginBottom: 12, fontSize: "14px", fontWeight: 500 }}>
             Duration: {formatDuration(durationSeconds)}
           </label>
           <input
+            id="duration-slider"
             type="range"
-            min="10"
-            max="1800"
-            step="10"
+            min={10}
+            max={1800}
+            step={10}
             value={durationSeconds}
-            onChange={(e) => setDurationSeconds(parseInt(e.target.value))}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              setDurationSeconds(val);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation(); // Prevent GlassCard from interfering
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation(); // Prevent GlassCard from interfering
+            }}
             disabled={loading}
             style={{
               width: "100%",
-              height: "8px",
+              height: "20px",
               borderRadius: "4px",
               outline: "none",
               opacity: loading ? 0.6 : 1,
               cursor: loading ? "not-allowed" : "pointer",
+              pointerEvents: loading ? "none" : "auto",
+              WebkitAppearance: "none",
+              MozAppearance: "none",
+              appearance: "none",
+              background: "transparent",
+              position: "relative",
+              zIndex: 10,
             }}
           />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: "12px", color: "#888" }}>
@@ -103,7 +188,7 @@ export default function Soundscape() {
           variant="primary"
           onClick={generateAIASMR}
           disabled={loading}
-          style={{ marginTop: 24 }}
+          style={{ marginTop: 20 }}
         >
           {loading ? "Generating..." : "Generate My Sleep Story"}
         </Button>
