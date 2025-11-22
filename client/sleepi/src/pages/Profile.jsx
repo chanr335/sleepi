@@ -15,14 +15,13 @@ const Profile = () => (
       <div className="profile-avatar">
          <User size={40} />
       </div>
-      <h2>FertenhxBnans</h2>
-      <p>London, Ontario</p>
+      <h2>Sleepy Person</h2>
     </div>
 
     <div className="form-section">
       <label>Personal Info</label>
       <GlassCard className="input-group">
-         <input type="text" defaultValue="FertenhxBnans" />
+         <input type="text" defaultValue="Sleepy Person" />
          <div className="divider" />
          <input type="email" defaultValue="user@example.com" />
       </GlassCard>
