@@ -30,10 +30,11 @@ const Profile = () => (
     <div className="form-section">
       <label>Devices</label>
       <GlassCard className="list-item">
-         <div className="flex-row">
-            <Smartphone color="#22d3ee" size={20} style={{ marginRight: 10 }} />
-            <span>Apple Watch Series 8</span>
-         </div>
+        <div className="flex-row" style={{ display: "flex", alignItems: "center" }}>
+          <Smartphone color="#22d3ee" size={20} style={{ marginRight: 10 }} />
+          <span>Apple Watch Series 8</span>
+        </div>
+
          <span className="badge badge-green">Connected</span>
       </GlassCard>
     </div>
@@ -43,10 +44,6 @@ const Profile = () => (
       <GlassCard className="settings-list">
          <div className="setting-row">
             <span>Daily Reminders</span>
-            <div className="switch checked"><div className="knob" /></div>
-         </div>
-         <div className="setting-row">
-            <span>Dark Mode</span>
             <div className="switch checked"><div className="knob" /></div>
          </div>
       </GlassCard>
