@@ -2,8 +2,11 @@ import os
 import json
 import httpx
 import pandas as pd
+import traceback
+from io import BytesIO
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List
 from pathlib import Path
@@ -22,6 +25,10 @@ if not GEMINI_API_KEY:
 MODEL_NAME = "gemini-2.5-flash-preview-09-2025"
 API_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
 
+# ElevenLabs configuration (optional - only needed for TTS endpoints)
+ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
+ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID')
+
 # --- Pydantic Schemas ---
 
 class ScheduleEntry(BaseModel):
@@ -36,6 +43,11 @@ class ScheduleResponse(BaseModel):
     """The overall structure for the AI's schedule output."""
     personalized_schedule: List[ScheduleEntry] = Field(..., description="A 7-day schedule to improve sleep.")
 
+class ASMRRequest(BaseModel):
+    """Request model for generating ASMR sleep audio."""
+    username: str = Field(..., description="Username to generate personalized sleep story for")
+    duration_seconds: int = Field(default=300, description="Duration of the sleep story in seconds (10-1800)")
+    mood: str = Field(default="tired after a long day", description="Current mood or state of mind")
 class SleepLogEntry(BaseModel):
     """Structure for logging a new sleep entry. Only night and TotalSleepHours are required."""
     night: str = Field(..., description="Date of the night (e.g., '2025-01-15').")
@@ -101,6 +113,168 @@ def get_sleep_value(username: str, column_name: str):
     # Return night and the specific sleep value
     result = df[["night", column_name]].to_dict(orient="records")
     return result
+
+
+async def generate_sleep_script(username: str, duration_seconds: int, mood: str) -> str:
+    """
+    Generates an ASMR-style sleep narration script using Gemini.
+    Uses the user's sleep data to personalize the script.
+    
+    Args:
+        username: Username to personalize the script for
+        duration_seconds: Target duration in seconds (10-1800)
+        mood: Current mood or state of mind
+    
+    Returns:
+        Generated script text
+    """
+    # Validate duration
+    if duration_seconds < 10 or duration_seconds > 1800:
+        raise HTTPException(
+            status_code=400,
+            detail="Duration must be between 10 seconds and 30 minutes (1800 seconds)"
+        )
+    
+    # Calculate word count based on TTS reading speed
+    # Typical TTS reading speed is ~150-160 words per minute
+    # For ASMR/sleep content, we use a slightly slower pace (~140 words/min)
+    duration_minutes = duration_seconds / 60.0
+    words_per_minute = 140  # Slightly slower for ASMR/sleep content
+    target_word_count = int(duration_minutes * words_per_minute)
+    
+    # Try to get user's sleep data for personalization
+    file_path = DATA_DIR / f"sleep_by_night_{username}.csv"
+    user_context = ""
+    
+    if file_path.exists():
+        try:
+            df = pd.read_csv(file_path)
+            if len(df) > 0:
+                avg_sleep = df['TotalSleepHours'].mean() if 'TotalSleepHours' in df.columns else 0
+                user_context = f"""
+- The user's average sleep duration is {avg_sleep:.1f} hours.
+- Based on their sleep history, they may benefit from guidance to improve sleep quality.
+"""
+        except Exception:
+            pass  # If we can't read the data, continue without it
+    
+    # Format duration for display
+    if duration_seconds < 60:
+        duration_display = f"{duration_seconds} seconds"
+    elif duration_seconds < 3600:
+        minutes = int(duration_seconds / 60)
+        seconds = duration_seconds % 60
+        duration_display = f"{minutes} minute{'s' if minutes != 1 else ''}" + (f" {seconds} second{'s' if seconds != 1 else ''}" if seconds > 0 else "")
+    else:
+        hours = int(duration_seconds / 3600)
+        minutes = int((duration_seconds % 3600) / 60)
+        duration_display = f"{hours} hour{'s' if hours != 1 else ''}" + (f" {minutes} minute{'s' if minutes != 1 else ''}" if minutes > 0 else "")
+    
+    prompt = f"""
+Create an ASMR-style sleep narration script.
+
+Requirements:
+- Address the listener as "{username}" or "you".
+- Tone: ultra-soft, comforting, whisper-like.
+- Focus on slow breathing, calming imagery, and gentle reassurance.
+- Reflect that they feel: "{mood}".
+{user_context}
+- Duration: The script should be approximately {duration_display} long when read at a calm, slow pace for sleep.
+- Word count: Generate approximately {target_word_count} words. This ensures the audio will be about {duration_display} when converted to speech.
+- DO NOT include scene directions or markup. Only the spoken script text.
+- Pace the content slowly and calmly, with natural pauses for breathing and relaxation.
+
+Write the script now:
+"""
+
+    try:
+        gemini_payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.7,
+            }
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                API_ENDPOINT,
+                json=gemini_payload,
+                timeout=30.0
+            )
+            response.raise_for_status()
+            gemini_result = response.json()
+            
+            # Handle potential errors in response structure
+            if 'candidates' not in gemini_result or len(gemini_result['candidates']) == 0:
+                print(f"Unexpected Gemini response structure: {gemini_result}")
+                raise HTTPException(status_code=500, detail="Unexpected response from Gemini API")
+            
+            candidate = gemini_result['candidates'][0]
+            if 'content' not in candidate or 'parts' not in candidate['content']:
+                print(f"Unexpected Gemini response structure: {gemini_result}")
+                raise HTTPException(status_code=500, detail="Unexpected response structure from Gemini API")
+            
+            return candidate['content']['parts'][0]['text']
+    except httpx.HTTPStatusError as e:
+        error_detail = e.response.text if e.response else str(e)
+        print(f"Gemini HTTP error: {e}")
+        print(f"Response: {error_detail}")
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate ASMR script: {error_detail[:200]}")
+    except KeyError as e:
+        print(f"Gemini response parsing error: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse Gemini response: {str(e)}")
+    except Exception as e:
+        print(f"Gemini error: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate ASMR script: {str(e)}")
+
+
+async def tts_with_elevenlabs(text: str) -> bytes:
+    """
+    Converts text to speech using ElevenLabs API.
+    Returns the audio bytes.
+    """
+    if not ELEVENLABS_API_KEY or not ELEVENLABS_VOICE_ID:
+        raise HTTPException(
+            status_code=500,
+            detail="ElevenLabs API key or voice ID not configured"
+        )
+    
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+    
+    headers = {
+        "xi-api-key": ELEVENLABS_API_KEY,
+        "Content-Type": "application/json",
+        "Accept": "audio/mpeg",
+    }
+    
+    payload = {
+        "text": text,
+        "voice_settings": {
+            "stability": 0.3,
+            "similarity_boost": 0.95,
+        }
+    }
+    
+    async with httpx.AsyncClient(timeout=90.0) as client:
+        try:
+            resp = await client.post(url, headers=headers, json=payload)
+            if resp.status_code != 200:
+                print(f"ElevenLabs error status {resp.status_code}: {resp.text}")
+                raise HTTPException(status_code=500, detail=f"Failed to generate audio: {resp.text[:200]}")
+            return resp.content
+        except httpx.HTTPStatusError as e:
+            error_detail = e.response.text if e.response else str(e)
+            print(f"ElevenLabs HTTP error: {e}")
+            print(f"Response: {error_detail}")
+            print(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate audio: {error_detail[:200]}")
+        except Exception as e:
+            print(f"ElevenLabs error: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate audio: {str(e)}")
 
 # --- Routes ---
 
@@ -400,3 +574,33 @@ async def generate_schedule(username: str):
         # Handle all other errors (e.g., Pandas failure, JSON parse errors)
         print(f"An unexpected error occurred: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred during analysis or generation.")
+
+
+# --- ASMR / TTS Endpoints ---
+
+@app.post("/api/sleep-asmr")
+async def create_sleep_asmr(req: ASMRRequest):
+    """
+    Generates a personalized ASMR sleep story for the user.
+    Uses Gemini to generate the script and ElevenLabs to convert it to speech.
+    Returns the audio as a streaming MP3 response.
+    """
+    try:
+        # Generate the sleep script using Gemini
+        script = await generate_sleep_script(req.username, req.duration_seconds, req.mood)
+        
+        # Convert to speech using ElevenLabs
+        audio_bytes = await tts_with_elevenlabs(script)
+        
+        # Return as streaming audio response
+        return StreamingResponse(
+            BytesIO(audio_bytes),
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": 'inline; filename="asmr.mp3"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating ASMR: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate ASMR audio: {str(e)}")
