@@ -26,3 +26,7 @@ dist-ssr
 venv/
 server/venv/
 server/__pycache__/
+
+# local development specific files and directories
+.vite-inspect
+.vite/
