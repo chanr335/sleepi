@@ -74,7 +74,7 @@ export default function Soundscape() {
     <div className="page-content">
       <header className="page-header">
         <h1>Soundscape</h1>
-        <p>Create a calm environment with sleep sounds and white noise.</p>
+        <p>Fall asleep faster with your personalized AI voice and soothing soundscapes.</p>
       </header>
 
       {/* Hidden audio element */}
