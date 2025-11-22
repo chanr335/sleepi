@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Moon, Activity } from 'lucide-react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import GlassCard from '../components/GlassCard';
@@ -7,7 +7,7 @@ import CircularProgress from '../components/CircularProgress';
 import '../index.css';
 
 const Dashboard = () => {
-  const sleepData = [
+  const [sleepData, setSleepData] = useState([
     { day: 'Mon', hours: 6.5 },
     { day: 'Tue', hours: 7.2 },
     { day: 'Wed', hours: 5.8 },
@@ -15,7 +15,41 @@ const Dashboard = () => {
     { day: 'Fri', hours: 8.2 },
     { day: 'Sat', hours: 9.0 },
     { day: 'Sun', hours: 7.4 },
-  ];
+  ]);
+
+  useEffect(() => {
+    const fetchSleepData = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/sleep/ryan');
+        const data = await response.json();
+        
+        // Get the last 5 data points
+        const lastFivePoints = data.slice(-5);
+        
+        // Transform the data to match the chart format
+        const transformedData = lastFivePoints.map((point, index) => {
+          // Format date as MM-DD (e.g., "2025-02-03" -> "02-03")
+          const date = new Date(point.night);
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const formattedDate = `${month}-${day}`;
+          
+          return {
+            day: formattedDate,
+            hours: point.TotalSleepHours,
+            // Store the full data point for potential future use
+            fullData: point
+          };
+        });
+        
+        setSleepData(transformedData);
+      } catch (error) {
+        console.error('Error fetching sleep data:', error);
+      }
+    };
+
+    fetchSleepData();
+  }, []);
 
   return (
     <div className="page-content">

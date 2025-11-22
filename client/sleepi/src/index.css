@@ -103,6 +103,13 @@ body {
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  outline: none;
+}
+
+.glass-card:focus,
+.glass-card:active {
+  outline: none;
+  border: 1px solid var(--glass-border);
 }
 
 /* --- Typography --- */
@@ -241,7 +248,16 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 .icon-yellow { background: rgba(250, 204, 21, 0.15); color: #facc15; }
 .icon-pink { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
 
-.chart-container { height: 200px; width: 100%; }
+.chart-container { 
+  height: 200px; 
+  width: 100%; 
+  outline: none;
+}
+
+.chart-container:focus,
+.chart-container:active {
+  outline: none;
+}
 
 /* --- Leaderboard Specific --- */
 .toggle-container {
