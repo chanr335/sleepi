@@ -53,7 +53,7 @@ const Dashboard = () => {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={sleepData}>
               <XAxis dataKey="day" stroke="#a5b4fc" fontSize={12} tickLine={false} axisLine={false} />
-              <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#1e1b4b', borderColor: '#4338ca', borderRadius: '12px', color: '#fff' }} />
+              <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#4338ca', borderRadius: '12px', color: '#fff' }} />
               <Bar dataKey="hours" radius={[4, 4, 4, 4]}>
                 {sleepData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.hours >= 7 ? '#22d3ee' : '#6366f1'} />

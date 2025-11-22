@@ -1,8 +1,8 @@
 :root {
-  --bg-dark: #020617;
-  --bg-gradient-start: #1e1b4b; /* Indigo 950 */
-  --bg-gradient-mid: #3b0764;   /* Purple 950 */
-  --bg-gradient-end: #0f172a;   /* Slate 900 */
+  --bg-dark: #1a1a1a; /* Dark gray base */
+  --bg-gradient-start: #2a2a2a; /* Dark gray */
+  --bg-gradient-mid: #1f1f1f;   /* Medium dark gray */
+  --bg-gradient-end: #1a1a1a;   /* Dark gray */
   
   --primary: #06b6d4; /* Cyan 500 */
   --primary-glow: rgba(34, 211, 238, 0.5);
@@ -62,7 +62,7 @@ body {
   left: -10%;
   width: 300px;
   height: 300px;
-  background: #9333ea; /* Purple */
+  background: rgba(0, 0, 0, 0.1); /* Purple */
 }
 
 .glow-2 {
@@ -74,11 +74,7 @@ body {
 }
 
 .stars {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(white 1px, transparent 1px);
-  background-size: 50px 50px;
-  opacity: 0.2;
+  display: none; /* Remove dots/stars effect */
 }
 
 /* --- Layout --- */
@@ -163,7 +159,7 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 /* --- Dashboard Specific --- */
 .center-content {
   display: flex;
-  flex-col: column;
+  flex-direction: column;
   align-items: center;
   text-align: center;
 }
@@ -185,7 +181,7 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 }
 
 .progress-ring { transform: rotate(-90deg); }
-.progress-ring-bg { color: rgba(30, 27, 75, 0.5); }
+.progress-ring-bg { color: rgba(26, 26, 26, 0.5); }
 .progress-ring-fill {
   color: var(--primary);
   stroke-linecap: round;
@@ -245,7 +241,7 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 
 /* --- Leaderboard Specific --- */
 .toggle-container {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(26, 26, 26, 0.6);
   padding: 4px;
   border-radius: 16px;
   display: flex;
@@ -386,7 +382,7 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
   position: fixed;
   bottom: 0; left: 0; right: 0;
   height: 80px;
-  background: rgba(2, 6, 23, 0.85);
+  background: rgba(26, 26, 26, 0.85);
   backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255,255,255,0.1);
   display: flex;
