@@ -1,12 +1,29 @@
-import { useState } from 'react'
 import './App.css'
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+
+import Coach from "./pages/Coach";
+import Home from "./pages/Home";
+import Leaderboard from "./pages/Leaderboard";
+import Profile from "./pages/Profile";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-      <h1>Sleepi</h1>
+      <BrowserRouter>
+        <nav>
+          <Link to="/">Home</Link> |{" "}
+          <Link to="/coach">Coach</Link> |{" "}
+          <Link to="/leaderboard">Leaderboard</Link> |{" "}
+          <Link to="/profile">Profile</Link>
+        </nav>
+        <h1>Sleepi</h1>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/coach" element={<Coach />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+      </BrowserRouter>
     </>
   )
 }
