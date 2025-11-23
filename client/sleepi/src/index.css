@@ -47,7 +47,7 @@ body {
 .bg-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-mid), var(--bg-gradient-end));
+  background: var(--bg-dark);
 }
 
 .glow {
@@ -66,11 +66,7 @@ body {
 }
 
 .glow-2 {
-  bottom: 20%;
-  right: -10%;
-  width: 250px;
-  height: 250px;
-  background: #0891b2; /* Cyan */
+  display: none; /* Removed blue flare */
 }
 
 .stars {
@@ -140,9 +136,8 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 .btn:active { transform: scale(0.98); }
 
 .btn-primary {
-  background: linear-gradient(90deg, #06b6d4, #3b82f6);
+  background: var(--primary);
   color: white;
-  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
 }
 
 .btn-outline {
@@ -211,7 +206,6 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 .progress-ring-fill {
   color: var(--primary);
   stroke-linecap: round;
-  filter: drop-shadow(0 0 4px var(--primary-glow));
 }
 
 .progress-label {
@@ -384,7 +378,7 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 
 /* --- Coach & Profile --- */
 .tip-card { border-left: 4px solid #facc15; display: flex; gap: 16px; }
-.insight-card { background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(147, 51, 234, 0.15)); border: 1px solid rgba(255,255,255,0.15); }
+.insight-card { background: rgba(79, 70, 229, 0.15); border: 1px solid rgba(255,255,255,0.15); }
 .card-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .section-title { margin: 32px 0 12px 0; }
 .chevron { color: rgba(255,255,255,0.3); }
@@ -512,10 +506,9 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 .profile-avatar {
   width: 100px; height: 100px;
   border-radius: 50%;
-  background: linear-gradient(to top right, #06b6d4, #2563eb);
+  background: var(--primary);
   padding: 3px;
   margin-bottom: 16px;
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
 }
 .profile-avatar svg {
   width: 100%; height: 100%;
@@ -623,7 +616,6 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 
 .nav-item.active .nav-icon {
   color: var(--primary);
-  filter: drop-shadow(0 0 8px var(--primary-glow));
 }
 .nav-item.active .nav-label { color: white; }
 
@@ -635,7 +627,6 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
   background: var(--primary);
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 0 10px var(--primary-glow);
 }
 
 /* bottom nav base – keep your existing styles, but tweak spacing */
@@ -681,7 +672,6 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 /* active state */
 .nav-item.active .nav-icon {
   color: var(--primary);
-  filter: drop-shadow(0 0 8px var(--primary-glow));
 }
 
 /* move indicator UNDER the icon instead of on top */
@@ -693,17 +683,15 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
   height: 4px;
   background: var(--primary);
   border-radius: 999px;
-  box-shadow: 0 0 10px var(--primary-glow);
 }
 
 .profile-avatar {
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: linear-gradient(to top right, #06b6d4, #2563eb);
+  background: var(--primary);
   padding: 3px;
   margin-bottom: 16px;
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
 }
 
 .avatar-img {
@@ -894,7 +882,6 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 
 .confirmation-icon {
   color: #4ade80;
-  filter: drop-shadow(0 0 12px rgba(74, 222, 128, 0.5));
   width: 64px;
   height: 64px;
 }
