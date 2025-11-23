@@ -5,6 +5,10 @@ import '../index.css';
 
 const API_BASE_URL = 'http://localhost:8000';
 
+// Module-level cache variable
+// This persists as long as the app is running in the browser tab
+let scheduleCache = null;
+
 function Coach() {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -156,30 +160,51 @@ function Coach() {
     }
   };
 
+  // Centralized function to process data into state
+  // Used by both the API fetch and the Cache hit
+  const processData = (data) => {
+    setDailyTip(data.daily_tip || '');
+    setInsight(data.weekly_insight?.insight || '');
+    setPercentageChange(data.weekly_insight?.percentage_change ?? null);
+    
+    // Parse daily_schedule into events
+    if (data.daily_schedule && Array.isArray(data.daily_schedule)) {
+      const parsedEvents = data.daily_schedule
+        .map((item, index) => parseScheduleItem(item, index))
+        .filter(event => event !== null);
+      setEvents(parsedEvents);
+    } else {
+      setEvents([]);
+    }
+  };
+
   // Fetch events from API
   const fetchEvents = async () => {
     setIsLoading(true);
+
+    // 1. Check if we have data in the module-level cache
+    if (scheduleCache) {
+      console.log("Using cached schedule data");
+      processData(scheduleCache);
+      setIsLoading(false);
+      return;
+    }
+
+    // 2. If no cache, fetch from API
     try {
+      console.log("Fetching fresh schedule data...");
       const response = await fetch('http://127.0.0.1:8000/generate_schedule/eileen');
       if (!response.ok) {
         throw new Error('Failed to fetch schedule data');
       }
       const data = await response.json();
       
-      // Set daily tip and insight
-      setDailyTip(data.daily_tip || '');
-      setInsight(data.weekly_insight?.insight || '');
-      setPercentageChange(data.weekly_insight?.percentage_change ?? null);
+      // 3. Save to cache
+      scheduleCache = data;
       
-      // Parse daily_schedule into events
-      if (data.daily_schedule && Array.isArray(data.daily_schedule)) {
-        const parsedEvents = data.daily_schedule
-          .map((item, index) => parseScheduleItem(item, index))
-          .filter(event => event !== null);
-        setEvents(parsedEvents);
-      } else {
-        setEvents([]);
-      }
+      // 4. Process the fresh data
+      processData(data);
+      
     } catch (error) {
       console.error('Error fetching events:', error);
       setEvents([]);
@@ -262,4 +287,3 @@ function Coach() {
 }
 
 export default Coach;
-
