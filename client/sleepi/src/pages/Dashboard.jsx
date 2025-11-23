@@ -44,14 +44,13 @@ const Dashboard = () => {
       const formattedTime = formatHours(hours);
       return (
         <div style={{
-          backgroundColor: '#2a2a2a',
-          border: '1px solid #4338ca',
-          borderRadius: '12px',
-          padding: '12px 16px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+          backgroundColor: '#1C1C1E',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '18px',
+          padding: '12px 16px'
         }}>
           <p style={{ 
-            color: '#a5b4fc', 
+            color: '#FFFFFF', 
             margin: 0, 
             fontSize: '14px', 
             fontWeight: 600 
@@ -271,9 +270,9 @@ const Dashboard = () => {
         <div className="chart-container">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={sleepData} margin={{ left: 5, right: 10, top: 5, bottom: 5 }}>
-              <XAxis dataKey="day" stroke="#a5b4fc" fontSize={12} tickLine={false} axisLine={false} />
+              <XAxis dataKey="day" stroke="#8E8E93" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis 
-                stroke="#a5b4fc" 
+                stroke="#8E8E93" 
                 fontSize={12} 
                 tickLine={false} 
                 axisLine={false}
@@ -283,9 +282,12 @@ const Dashboard = () => {
               />
               <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
               <Bar dataKey="hours" radius={[4, 4, 4, 4]}>
-                {sleepData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.hours >= 7 ? '#22d3ee' : '#3b82f6'} />
-                ))}
+                {sleepData.map((entry, index) => {
+                  // Rotate through soft colors - 35% more saturated
+                  const softColors = ['#F5E8A5', '#B8E5D0', '#9FA5F0', '#8BA5F0'];
+                  const colorIndex = index % softColors.length;
+                  return <Cell key={`cell-${index}`} fill={softColors[colorIndex]} />;
+                })}
               </Bar>
             </BarChart>
           </ResponsiveContainer>

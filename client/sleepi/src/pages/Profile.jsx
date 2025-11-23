@@ -35,7 +35,7 @@ const Profile = () => {
         <label>Devices</label>
         <GlassCard className="list-item">
           <div className="flex-row" style={{ display: "flex", alignItems: "center" }}>
-            <Smartphone color="#22d3ee" size={20} style={{ marginRight: 10 }} />
+            <Smartphone color="#8BA5F0" size={20} style={{ marginRight: 10 }} />
             <span>Apple Watch Series 8</span>
           </div>
 

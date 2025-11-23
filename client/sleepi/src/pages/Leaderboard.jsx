@@ -6,8 +6,8 @@ import '../index.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// Color palette for user avatars
-const COLORS = ['#f59e0b', '#94a3b8', '#c2410c', '#4f46e5', '#0891b2', '#10b981', '#8b5cf6', '#ec4899'];
+// Color palette for user avatars - standard colors
+const COLORS = ['#E63946', '#F77F00', '#FCBF49', '#06A77D', '#118AB2', '#073B4C', '#7209B7', '#560BAD'];
 
 const CATEGORIES = [
   { id: 'total', label: 'Total', endpoint: 'total', column: 'TotalSleepHours' },
@@ -169,7 +169,7 @@ const Leaderboard = () => {
           <p>Compete with your friends.</p>
         </header>
         <GlassCard className="center-content">
-          <p style={{ color: '#ef4444' }}>{error}</p>
+          <p style={{ color: '#D9B88F' }}>{error}</p>
         </GlassCard>
       </div>
     );
@@ -218,9 +218,9 @@ const Leaderboard = () => {
                       <Trophy 
                         size={20} 
                         color={
-                          user.rank === 1 ? '#fbbf24' :
-                          user.rank === 2 ? '#cbd5e1' :
-                                            '#fb923c'
+                          user.rank === 1 ? '#E8C085' :
+                          user.rank === 2 ? '#F0E0C0' :
+                                            '#D9B88F'
                         } 
                       />
                     ) : (
@@ -264,24 +264,23 @@ const Leaderboard = () => {
             onClick={() => setSelectedCategory(category.id)}
             style={{
               padding: '0.5rem 1rem',
-              borderRadius: '0.5rem',
-              border: 'none',
-              backgroundColor: selectedCategory === category.id ? '#4f46e5' : 'rgba(255, 255, 255, 0.1)',
-              color: selectedCategory === category.id ? '#fff' : 'rgba(255, 255, 255, 0.8)',
+              borderRadius: '18px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: selectedCategory === category.id ? 'rgba(232, 192, 133, 0.2)' : '#1C1C1E',
+              color: selectedCategory === category.id ? '#FFFFFF' : '#8E8E93',
               cursor: 'pointer',
               fontSize: '0.875rem',
               fontWeight: selectedCategory === category.id ? '600' : '400',
               transition: 'all 0.2s ease',
-              backdropFilter: 'blur(10px)',
             }}
             onMouseEnter={(e) => {
               if (selectedCategory !== category.id) {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                e.target.style.backgroundColor = '#222224';
               }
             }}
             onMouseLeave={(e) => {
               if (selectedCategory !== category.id) {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                e.target.style.backgroundColor = '#1C1C1E';
               }
             }}
           >
@@ -296,24 +295,23 @@ const Leaderboard = () => {
             style={{
               padding: '0.5rem 1rem',
               paddingRight: '2rem',
-              borderRadius: '0.5rem',
-              border: 'none',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              color: 'rgba(255, 255, 255, 0.8)',
+              borderRadius: '18px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: '#1C1C1E',
+              color: '#8E8E93',
               cursor: 'pointer',
               fontSize: '0.875rem',
               fontWeight: '400',
               transition: 'all 0.2s ease',
-              backdropFilter: 'blur(10px)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
             }}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+              e.target.style.backgroundColor = '#222224';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.backgroundColor = '#1C1C1E';
             }}
           >
             {DATE_FILTERS.find(f => f.id === selectedDateFilter)?.label || 'All Time'}
@@ -339,13 +337,12 @@ const Leaderboard = () => {
                 bottom: '100%',
                 left: 0,
                 marginBottom: '0.5rem',
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                backdropFilter: 'blur(20px)',
-                borderRadius: '0.5rem',
+                backgroundColor: '#1C1C1E',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '18px',
                 padding: '0.25rem',
                 minWidth: '150px',
                 zIndex: 1000,
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
               }}
             >
               {DATE_FILTERS.map((filter) => (
@@ -358,10 +355,10 @@ const Leaderboard = () => {
                   style={{
                     width: '100%',
                     padding: '0.5rem 1rem',
-                    borderRadius: '0.375rem',
+                    borderRadius: '12px',
                     border: 'none',
-                    backgroundColor: selectedDateFilter === filter.id ? 'rgba(79, 70, 229, 0.3)' : 'transparent',
-                    color: selectedDateFilter === filter.id ? '#fff' : 'rgba(255, 255, 255, 0.8)',
+                    backgroundColor: selectedDateFilter === filter.id ? 'rgba(232, 192, 133, 0.2)' : 'transparent',
+                    color: selectedDateFilter === filter.id ? '#FFFFFF' : '#8E8E93',
                     cursor: 'pointer',
                     fontSize: '0.875rem',
                     textAlign: 'left',
@@ -370,7 +367,7 @@ const Leaderboard = () => {
                   }}
                   onMouseEnter={(e) => {
                     if (selectedDateFilter !== filter.id) {
-                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                      e.target.style.backgroundColor = '#222224';
                     }
                   }}
                   onMouseLeave={(e) => {

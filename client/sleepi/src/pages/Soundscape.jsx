@@ -38,10 +38,9 @@ export default function Soundscape() {
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        background: #06b6d4;
+        background: #E8C085;
         cursor: pointer;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 2px 6px rgba(6, 182, 212, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.1);
         margin-top: -6px;
       }
       
@@ -49,20 +48,17 @@ export default function Soundscape() {
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        background: #06b6d4;
+        background: #E8C085;
         cursor: pointer;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 2px 6px rgba(6, 182, 212, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.1);
       }
       
       #duration-slider::-webkit-slider-thumb:hover {
-        background: #22d3ee;
-        box-shadow: 0 2px 8px rgba(6, 182, 212, 0.6);
+        background: #D9B88F;
       }
       
       #duration-slider::-moz-range-thumb:hover {
-        background: #22d3ee;
-        box-shadow: 0 2px 8px rgba(6, 182, 212, 0.6);
+        background: #D9B88F;
       }
     `;
     
@@ -180,7 +176,7 @@ export default function Soundscape() {
               zIndex: 10,
             }}
           />
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: "12px", color: "#888" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: "12px", color: "#8E8E93" }}>
             <span>10s</span>
             <span>30m</span>
           </div>
@@ -198,10 +194,10 @@ export default function Soundscape() {
               width: "100%",
               padding: "10px 12px",
               fontSize: "14px",
-              backgroundColor: "rgba(255, 255, 255, 0.1)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              borderRadius: "8px",
-              color: "#fff",
+              backgroundColor: "#1C1C1E",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "18px",
+              color: "#FFFFFF",
               outline: "none",
               cursor: loading ? "not-allowed" : "pointer",
               opacity: loading ? 0.6 : 1,
@@ -218,13 +214,13 @@ export default function Soundscape() {
               e.stopPropagation();
             }}
           >
-            <option value="delilah" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+            <option value="delilah" style={{ backgroundColor: "#1C1C1E", color: "#FFFFFF" }}>
               Delilah
             </option>
-            <option value="vincent" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+            <option value="vincent" style={{ backgroundColor: "#1C1C1E", color: "#FFFFFF" }}>
               Vincent
             </option>
-            <option value="tiza" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+            <option value="tiza" style={{ backgroundColor: "#1C1C1E", color: "#FFFFFF" }}>
               Tiza
             </option>
           </select>
