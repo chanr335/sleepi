@@ -52,6 +52,7 @@ class ASMRRequest(BaseModel):
     duration_seconds: int = Field(default=300, description="Duration of the sleep story in seconds (10-1800)")
     mood: str = Field(default="tired after a long day", description="Current mood or state of mind")
     voice: str = Field(default="delilah", description="Voice to use: 'delilah', 'vincent', or 'tiza'")
+    tone: str = Field(default="calm", description="Tone adjustment: 'calm', 'dreamy', 'storyteller', or 'whisper'")
 class SleepLogEntry(BaseModel):
     """Structure for logging a new sleep entry. Only night and TotalSleepHours are required."""
     night: str = Field(..., description="Date of the night (e.g., '2025-01-15').")
@@ -180,13 +181,16 @@ Create an ASMR-style sleep narration script.
 Requirements:
 - Address the listener as "{username}" or "you".
 - Tone: ultra-soft, comforting, whisper-like.
-- Focus on slow breathing, calming imagery, and gentle reassurance.
+- Focus on calming imagery, gentle reassurance, and peaceful descriptions.
 - Reflect that they feel: "{mood}".
 {user_context}
 - Duration: The script should be approximately {duration_display} long when read at a calm, slow pace for sleep.
 - Word count: Generate approximately {target_word_count} words. This ensures the audio will be about {duration_display} when converted to speech.
-- DO NOT include scene directions or markup. Only the spoken script text.
-- Pace the content slowly and calmly, with natural pauses for breathing and relaxation.
+- DO NOT include scene directions, markup, or instructions like "whisper", "exhale", "breathe", "soft whisper", etc.
+- DO NOT say phrases like "take a deep breath" or "let's whisper together" - just create soothing content naturally.
+- Only write the actual spoken words that will be read aloud - no meta-commentary about how to speak.
+- Use natural pauses in the text (ellipses or line breaks) but don't describe breathing or speaking techniques.
+- Pace the content slowly and calmly with natural pauses.
 
 Write the script now:
 """
@@ -235,7 +239,7 @@ Write the script now:
         raise HTTPException(status_code=500, detail=f"Failed to generate ASMR script: {str(e)}")
 
 
-async def tts_with_elevenlabs(text: str, voice: str = "delilah") -> bytes:
+async def tts_with_elevenlabs(text: str, voice: str = "delilah", tone: str = "calm") -> bytes:
     """
     Converts text to speech using ElevenLabs API.
     Returns the audio bytes.
@@ -243,6 +247,7 @@ async def tts_with_elevenlabs(text: str, voice: str = "delilah") -> bytes:
     Args:
         text: The text to convert to speech
         voice: The voice to use ('delilah', 'vincent', or 'tiza')
+        tone: The tone adjustment ('calm', 'dreamy', 'storyteller', or 'whisper')
     """
     # Select voice ID based on voice selection
     voice_id_map = {
@@ -258,6 +263,16 @@ async def tts_with_elevenlabs(text: str, voice: str = "delilah") -> bytes:
             status_code=400,
             detail=f"Invalid voice '{voice}'. Must be one of: delilah, vincent, tiza"
         )
+    
+    # Map tone to voice settings
+    tone_settings = {
+        "calm": {"stability": 0.5, "similarity_boost": 0.9},
+        "dreamy": {"stability": 0.4, "similarity_boost": 0.85},
+        "storyteller": {"stability": 0.6, "similarity_boost": 0.95},
+        "whisper": {"stability": 0.3, "similarity_boost": 0.8},
+    }
+    
+    voice_settings = tone_settings.get(tone.lower(), tone_settings["calm"])
     
     if not ELEVENLABS_API_KEY:
         raise HTTPException(
@@ -275,10 +290,7 @@ async def tts_with_elevenlabs(text: str, voice: str = "delilah") -> bytes:
     
     payload = {
         "text": text,
-        "voice_settings": {
-            "stability": 0.3,
-            "similarity_boost": 0.95,
-        }
+        "voice_settings": voice_settings
     }
     
     async with httpx.AsyncClient(timeout=90.0) as client:
@@ -813,8 +825,8 @@ async def create_sleep_asmr(req: ASMRRequest):
         # Generate the sleep script using Gemini
         script = await generate_sleep_script(req.username, req.duration_seconds, req.mood)
         
-        # Convert to speech using ElevenLabs with selected voice
-        audio_bytes = await tts_with_elevenlabs(script, req.voice)
+        # Convert to speech using ElevenLabs with selected voice and tone
+        audio_bytes = await tts_with_elevenlabs(script, req.voice, req.tone)
         
         # Return as streaming audio response
         return StreamingResponse(
