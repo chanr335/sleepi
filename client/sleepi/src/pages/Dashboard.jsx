@@ -74,15 +74,28 @@ const Dashboard = () => {
       const lastPoint = data[data.length - 1];
       setLastNightData(lastPoint);
       
-      // Get the last 7 data points
+      // Get the last 7 data points (11-15 to 11-21)
       const lastSevenPoints = data.slice(-7);
       
       // Transform the data to match the chart format
       const transformedData = lastSevenPoints.map((point, index) => {
-        // Format date as MM-DD (e.g., "2025-02-03" -> "02-03")
-        const date = new Date(point.night);
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
+        // Parse date string directly to avoid timezone issues
+        // point.night should be in format "YYYY-MM-DD"
+        const dateStr = String(point.night).substring(0, 10); // Take first 10 chars (YYYY-MM-DD)
+        const dateParts = dateStr.split('-');
+        
+        if (dateParts.length !== 3) {
+          console.error('Invalid date format:', point.night);
+          return {
+            day: 'Invalid',
+            hours: point.TotalSleepHours,
+            fullData: point
+          };
+        }
+        
+        // Format as MM-DD (e.g., "2025-11-15" -> "11-15")
+        const month = dateParts[1];
+        const day = dateParts[2];
         const formattedDate = `${month}-${day}`;
         
         return {
