@@ -217,7 +217,6 @@ const Dashboard = () => {
           max={9} 
           label={lastNightData ? formatHours(lastNightData.TotalSleepHours) : "0h 0m"} 
         />
-        <div className="badge badge-green">Optimal Range</div>
         
         <div className="sleep-metrics-grid">
           <div className="sleep-metric-item">

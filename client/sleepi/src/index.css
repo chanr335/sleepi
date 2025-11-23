@@ -204,7 +204,7 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 .progress-ring { transform: rotate(-90deg); }
 .progress-ring-bg { color: rgba(26, 26, 26, 0.5); }
 .progress-ring-fill {
-  color: var(--primary);
+  color: #10b981; /* Green version of the blue */
   stroke-linecap: round;
 }
 
