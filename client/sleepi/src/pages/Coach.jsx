@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Zap, Clock } from 'lucide-react';
+import { Lightbulb, Zap } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import '../index.css';
 
@@ -8,6 +8,9 @@ const API_BASE_URL = 'http://localhost:8000';
 function Coach() {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dailyTip, setDailyTip] = useState('');
+  const [insight, setInsight] = useState('');
+  const [percentageChange, setPercentageChange] = useState(null);
 
   // Get today's date formatted
   const today = new Date();
@@ -88,32 +91,101 @@ function Coach() {
     return `${h - 12}:00 PM`;
   };
 
+  // Parse daily schedule item into event
+  const parseScheduleItem = (scheduleItem, index) => {
+    // Format: "7:15 AM: Step outside for 10-15 minutes..."
+    // Need to find the colon after AM/PM, not the one in the time
+    const amPmMatch = scheduleItem.match(/(\d+:\d+\s*(?:AM|PM)):\s*(.+)/i);
+    if (!amPmMatch) {
+      // Fallback: try to find colon after time pattern
+      const timePattern = /(\d+:\d+\s*(?:AM|PM)?)/i;
+      const match = scheduleItem.match(timePattern);
+      if (!match) {
+        return null;
+      }
+      const timeStr = match[1].trim();
+      const descriptionStart = match.index + match[0].length;
+      const description = scheduleItem.substring(descriptionStart).replace(/^:\s*/, '').trim();
+      
+      const normalizedTime = normalizeTimeFormat(timeStr);
+      
+      return {
+        id: index + 1,
+        time: normalizedTime,
+        description: description
+      };
+    }
+    
+    const timeStr = amPmMatch[1].trim();
+    const description = amPmMatch[2].trim();
+    
+    // Ensure time is in 12-hour format with AM/PM
+    const normalizedTime = normalizeTimeFormat(timeStr);
+    
+    return {
+      id: index + 1,
+      time: normalizedTime,
+      description: description
+    };
+  };
+
+  // Normalize time to 12-hour format with AM/PM
+  const normalizeTimeFormat = (timeStr) => {
+    if (!timeStr) return '';
+    
+    // If it already has AM/PM, return as is
+    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+      return timeStr;
+    }
+    
+    // If it's in 24-hour format, convert to 12-hour
+    const match = timeStr.match(/(\d+):(\d+)/);
+    if (!match) return timeStr;
+    
+    let hour = parseInt(match[1]);
+    const minutes = match[2];
+    
+    if (hour === 0) {
+      return `12:${minutes} AM`;
+    } else if (hour < 12) {
+      return `${hour}:${minutes} AM`;
+    } else if (hour === 12) {
+      return `12:${minutes} PM`;
+    } else {
+      return `${hour - 12}:${minutes} PM`;
+    }
+  };
+
   // Fetch events from API
   const fetchEvents = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API endpoint for daily events
-      // For now, using mock data structure
-      // Example API call: const response = await fetch(`${API_BASE_URL}/coach/events/today`);
-      // const data = await response.json();
+      const response = await fetch('http://127.0.0.1:8000/generate_schedule/eileen');
+      if (!response.ok) {
+        throw new Error('Failed to fetch schedule data');
+      }
+      const data = await response.json();
       
-      // Mock data structure - replace with actual API call
-      const mockEvents = [
-        { id: 1, time: '10:00 AM', title: 'Stop drinking coffee', description: 'Limit caffeine intake' },
-        { id: 2, time: '2:00 PM', title: 'No more caffeine', description: 'Caffeine cutoff time' },
-        { id: 3, time: '9:00 PM', title: 'No eating after this time', description: 'Allow digestion before bed' },
-        { id: 4, time: '10:15 PM', title: 'Turn off all screens', description: 'Put phone, TV, computer away' },
-        { id: 5, time: '10:30 PM', title: 'Read for 20 minutes', description: 'Physical book only' },
-        { id: 6, time: '10:50 PM', title: 'Gentle stretching', description: '10 minutes in bedroom' },
-        { id: 7, time: '11:00 PM', title: 'Set thermostat to 67°F', description: 'Optimal sleep temperature' },
-      ];
+      // Set daily tip and insight
+      setDailyTip(data.daily_tip || '');
+      setInsight(data.weekly_insight?.insight || '');
+      setPercentageChange(data.weekly_insight?.percentage_change ?? null);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setEvents(mockEvents);
+      // Parse daily_schedule into events
+      if (data.daily_schedule && Array.isArray(data.daily_schedule)) {
+        const parsedEvents = data.daily_schedule
+          .map((item, index) => parseScheduleItem(item, index))
+          .filter(event => event !== null);
+        setEvents(parsedEvents);
+      } else {
+        setEvents([]);
+      }
     } catch (error) {
       console.error('Error fetching events:', error);
       setEvents([]);
+      setDailyTip('');
+      setInsight('');
+      setPercentageChange(null);
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +195,12 @@ function Coach() {
     fetchEvents();
   }, []);
 
-  const eventsByHour = groupEventsByHour(events);
+  // Sort events by time
+  const sortedEvents = [...events].sort((a, b) => {
+    const timeA = parseTimeToMinutes(a.time);
+    const timeB = parseTimeToMinutes(b.time);
+    return timeA - timeB;
+  });
 
   return (
     <div className="page-content">
@@ -136,15 +213,20 @@ function Coach() {
         <div className="icon-box icon-yellow"><Lightbulb size={24} /></div>
         <div>
           <h3>Daily Tip</h3>
-          <p>Try to go to bed at the same time every night. Consistency reinforces your body's sleep-wake cycle.</p>
+          <p>{dailyTip || 'Loading your daily tip...'}</p>
         </div>
       </GlassCard>
 
       <GlassCard className="insight-card">
         <div className="card-header-row">
           <h3><Zap size={16} color="#22d3ee" /> Insight</h3>
+          {percentageChange !== null && (
+            <span className={`badge ${percentageChange >= 0 ? 'badge-green' : 'badge-red'}`}>
+              {percentageChange >= 0 ? '+' : ''}{percentageChange.toFixed(1)}%
+            </span>
+          )}
         </div>
-        <p>Your sleep consistency has improved significantly this week compared to last month.</p>
+        <p>{insight || 'Loading your insight...'}</p>
       </GlassCard>
 
       <h3 className="section-title">Sleep Program</h3>
@@ -158,32 +240,19 @@ function Coach() {
           <div className="calendar-loading">
             <p>Loading your sleep program...</p>
           </div>
-        ) : Object.keys(eventsByHour).length === 0 ? (
+        ) : sortedEvents.length === 0 ? (
           <div className="calendar-empty">
             <p>No events scheduled for today.</p>
           </div>
         ) : (
           <div className="calendar-timeline">
-            {Object.entries(eventsByHour).map(([hour, hourEvents]) => (
-              <div key={hour} className="calendar-hour-section">
-                <div className="hour-header">
-                  <Clock size={16} className="hour-icon" />
-                  <span className="hour-time">{formatHour(hour)}</span>
+            {sortedEvents.map((event) => (
+              <GlassCard key={event.id} className="calendar-event">
+                <div className="event-time">{event.time}</div>
+                <div className="event-content">
+                  <p className="event-description">{event.description}</p>
                 </div>
-                <div className="hour-events">
-                  {hourEvents.map((event) => (
-                    <GlassCard key={event.id} className="calendar-event">
-                      <div className="event-time">{event.time}</div>
-                      <div className="event-content">
-                        <h5 className="event-title">{event.title}</h5>
-                        {event.description && (
-                          <p className="event-description">{event.description}</p>
-                        )}
-                      </div>
-                    </GlassCard>
-                  ))}
-                </div>
-              </div>
+              </GlassCard>
             ))}
           </div>
         )}
