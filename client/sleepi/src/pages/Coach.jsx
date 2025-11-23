@@ -4,6 +4,7 @@ import GlassCard from '../components/GlassCard';
 import '../index.css';
 
 const API_BASE_URL = 'http://localhost:8000';
+const CACHE_KEY = 'sleep_coach_data'; // Key for sessionStorage
 
 function Coach() {
   const [events, setEvents] = useState([]);
@@ -21,171 +22,114 @@ function Coach() {
     day: 'numeric' 
   });
 
-  // Group events by hour
-  const groupEventsByHour = (eventsList) => {
-    const grouped = {};
-    eventsList.forEach(event => {
-      // Extract hour from time (assuming format like "10:30 PM" or "14:30")
-      const hour = parseHour(event.time);
-      if (!grouped[hour]) {
-        grouped[hour] = [];
-      }
-      grouped[hour].push(event);
-    });
-    
-    // Sort hours and events within each hour
-    const sortedHours = Object.keys(grouped).sort((a, b) => parseInt(a) - parseInt(b));
-    const sorted = {};
-    sortedHours.forEach(hour => {
-      sorted[hour] = grouped[hour].sort((a, b) => {
-        const timeA = parseTimeToMinutes(a.time);
-        const timeB = parseTimeToMinutes(b.time);
-        return timeA - timeB;
-      });
-    });
-    return sorted;
-  };
-
-  // Parse hour from time string (handles both 12h and 24h formats)
-  const parseHour = (timeStr) => {
-    if (!timeStr) return '0';
+  // --- HELPER: Time Parsing Logic ---
+  // (Moved these up so they can be used by the processing function)
+  
+  const normalizeTimeFormat = (timeStr) => {
+    if (!timeStr) return '';
+    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+      return timeStr;
+    }
     const match = timeStr.match(/(\d+):(\d+)/);
-    if (!match) return '0';
+    if (!match) return timeStr;
     let hour = parseInt(match[1]);
-    // Handle PM (add 12 if not 12 PM)
-    if (timeStr.toLowerCase().includes('pm') && hour !== 12) {
-      hour += 12;
-    }
-    // Handle AM (if 12 AM, make it 0)
-    if (timeStr.toLowerCase().includes('am') && hour === 12) {
-      hour = 0;
-    }
-    return hour.toString();
+    const minutes = match[2];
+    if (hour === 0) return `12:${minutes} AM`;
+    if (hour < 12) return `${hour}:${minutes} AM`;
+    if (hour === 12) return `12:${minutes} PM`;
+    return `${hour - 12}:${minutes} PM`;
   };
 
-  // Parse time to minutes for sorting
+  const parseScheduleItem = (scheduleItem, index) => {
+    const amPmMatch = scheduleItem.match(/(\d+:\d+\s*(?:AM|PM)):\s*(.+)/i);
+    if (!amPmMatch) {
+      const timePattern = /(\d+:\d+\s*(?:AM|PM)?)/i;
+      const match = scheduleItem.match(timePattern);
+      if (!match) return null;
+      
+      const timeStr = match[1].trim();
+      const descriptionStart = match.index + match[0].length;
+      const description = scheduleItem.substring(descriptionStart).replace(/^:\s*/, '').trim();
+      const normalizedTime = normalizeTimeFormat(timeStr);
+      
+      return { id: index + 1, time: normalizedTime, description: description };
+    }
+    
+    const timeStr = amPmMatch[1].trim();
+    const description = amPmMatch[2].trim();
+    const normalizedTime = normalizeTimeFormat(timeStr);
+    
+    return { id: index + 1, time: normalizedTime, description: description };
+  };
+
   const parseTimeToMinutes = (timeStr) => {
     if (!timeStr) return 0;
     const match = timeStr.match(/(\d+):(\d+)/);
     if (!match) return 0;
     let hour = parseInt(match[1]);
     const minutes = parseInt(match[2]);
-    
-    // Handle PM (add 12 if not 12 PM)
-    if (timeStr.toLowerCase().includes('pm') && hour !== 12) {
-      hour += 12;
-    }
-    // Handle AM (if 12 AM, make it 0)
-    if (timeStr.toLowerCase().includes('am') && hour === 12) {
-      hour = 0;
-    }
+    if (timeStr.toLowerCase().includes('pm') && hour !== 12) hour += 12;
+    if (timeStr.toLowerCase().includes('am') && hour === 12) hour = 0;
     return hour * 60 + minutes;
   };
 
-  // Format hour for display
-  const formatHour = (hour) => {
-    const h = parseInt(hour);
-    if (h === 0) return '12:00 AM';
-    if (h < 12) return `${h}:00 AM`;
-    if (h === 12) return '12:00 PM';
-    return `${h - 12}:00 PM`;
-  };
-
-  // Parse daily schedule item into event
-  const parseScheduleItem = (scheduleItem, index) => {
-    // Format: "7:15 AM: Step outside for 10-15 minutes..."
-    // Need to find the colon after AM/PM, not the one in the time
-    const amPmMatch = scheduleItem.match(/(\d+:\d+\s*(?:AM|PM)):\s*(.+)/i);
-    if (!amPmMatch) {
-      // Fallback: try to find colon after time pattern
-      const timePattern = /(\d+:\d+\s*(?:AM|PM)?)/i;
-      const match = scheduleItem.match(timePattern);
-      if (!match) {
-        return null;
-      }
-      const timeStr = match[1].trim();
-      const descriptionStart = match.index + match[0].length;
-      const description = scheduleItem.substring(descriptionStart).replace(/^:\s*/, '').trim();
-      
-      const normalizedTime = normalizeTimeFormat(timeStr);
-      
-      return {
-        id: index + 1,
-        time: normalizedTime,
-        description: description
-      };
-    }
+  // --- NEW: Centralized Data Processor ---
+  const processAndSetData = (data) => {
+    setDailyTip(data.daily_tip || '');
+    setInsight(data.weekly_insight?.insight || '');
+    setPercentageChange(data.weekly_insight?.percentage_change ?? null);
     
-    const timeStr = amPmMatch[1].trim();
-    const description = amPmMatch[2].trim();
-    
-    // Ensure time is in 12-hour format with AM/PM
-    const normalizedTime = normalizeTimeFormat(timeStr);
-    
-    return {
-      id: index + 1,
-      time: normalizedTime,
-      description: description
-    };
-  };
-
-  // Normalize time to 12-hour format with AM/PM
-  const normalizeTimeFormat = (timeStr) => {
-    if (!timeStr) return '';
-    
-    // If it already has AM/PM, return as is
-    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
-      return timeStr;
-    }
-    
-    // If it's in 24-hour format, convert to 12-hour
-    const match = timeStr.match(/(\d+):(\d+)/);
-    if (!match) return timeStr;
-    
-    let hour = parseInt(match[1]);
-    const minutes = match[2];
-    
-    if (hour === 0) {
-      return `12:${minutes} AM`;
-    } else if (hour < 12) {
-      return `${hour}:${minutes} AM`;
-    } else if (hour === 12) {
-      return `12:${minutes} PM`;
+    if (data.daily_schedule && Array.isArray(data.daily_schedule)) {
+      const parsedEvents = data.daily_schedule
+        .map((item, index) => parseScheduleItem(item, index))
+        .filter(event => event !== null);
+      setEvents(parsedEvents);
     } else {
-      return `${hour - 12}:${minutes} PM`;
+      setEvents([]);
     }
   };
 
-  // Fetch events from API
+  // --- UPDATED: Fetch with Caching Strategy ---
   const fetchEvents = async () => {
     setIsLoading(true);
+    
+    // 1. Check Session Storage first
+    const cachedData = sessionStorage.getItem(CACHE_KEY);
+    
+    if (cachedData) {
+      console.log("Loading schedule from cache...");
+      try {
+        const parsedData = JSON.parse(cachedData);
+        processAndSetData(parsedData);
+        setIsLoading(false);
+        return; // EXIT FUNCTION: Do not make API call
+      } catch (e) {
+        console.error("Error parsing cache, falling back to API", e);
+        sessionStorage.removeItem(CACHE_KEY); // Clear corrupted cache
+      }
+    }
+
+    // 2. If no cache, fetch from API
+    console.log("Fetching new schedule from API...");
     try {
-      const response = await fetch('http://127.0.0.1:8000/generate_schedule/eileen');
+      // Note: Assuming 'eileen' is the user. You might want to make this dynamic later.
+      const response = await fetch(`${API_BASE_URL}/generate_schedule/eileen`);
       if (!response.ok) {
         throw new Error('Failed to fetch schedule data');
       }
       const data = await response.json();
       
-      // Set daily tip and insight
-      setDailyTip(data.daily_tip || '');
-      setInsight(data.weekly_insight?.insight || '');
-      setPercentageChange(data.weekly_insight?.percentage_change ?? null);
+      // 3. Save to Session Storage
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
       
-      // Parse daily_schedule into events
-      if (data.daily_schedule && Array.isArray(data.daily_schedule)) {
-        const parsedEvents = data.daily_schedule
-          .map((item, index) => parseScheduleItem(item, index))
-          .filter(event => event !== null);
-        setEvents(parsedEvents);
-      } else {
-        setEvents([]);
-      }
+      // 4. Update State
+      processAndSetData(data);
+
     } catch (error) {
       console.error('Error fetching events:', error);
       setEvents([]);
-      setDailyTip('');
-      setInsight('');
-      setPercentageChange(null);
+      setDailyTip('Could not load tip.');
+      setInsight('Could not load insight.');
     } finally {
       setIsLoading(false);
     }
@@ -262,4 +206,3 @@ function Coach() {
 }
 
 export default Coach;
-
