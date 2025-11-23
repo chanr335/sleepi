@@ -385,7 +385,10 @@ def get_sleep_for_user(username: str):
     # Sort by date to ensure most recent is last
     try:
         df['_night_datetime'] = pd.to_datetime(df['night'], format='%Y-%m-%d', errors='coerce')
-        df = df.sort_values('_night_datetime').reset_index(drop=True)
+        # Drop rows with invalid dates before sorting
+        df = df.dropna(subset=['_night_datetime'])
+        # Sort by date (ascending - oldest first, most recent last)
+        df = df.sort_values('_night_datetime', ascending=True).reset_index(drop=True)
         df = df.drop(columns=['_night_datetime'])
         # Ensure night is still string format
         df['night'] = df['night'].astype(str).str[:10]

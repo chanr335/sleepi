@@ -69,9 +69,62 @@ const Dashboard = () => {
       const response = await fetch('http://127.0.0.1:8000/sleep/eileen');
       const data = await response.json();
       
-      // Get the last data point for "Last Night's Sleep"
-      const lastPoint = data[data.length - 1];
-      setLastNightData(lastPoint);
+      // Find the most recent data point by explicitly comparing dates
+      // This ensures we get the latest entry even if data isn't perfectly sorted
+      let mostRecentPoint = null;
+      let mostRecentDate = null;
+      
+      for (const point of data) {
+        const dateStr = String(point.night).substring(0, 10); // Get YYYY-MM-DD format
+        const pointDate = new Date(dateStr);
+        
+        if (!mostRecentDate || pointDate > mostRecentDate) {
+          mostRecentDate = pointDate;
+          mostRecentPoint = point;
+        }
+      }
+      
+      setLastNightData(mostRecentPoint);
+      
+      // Debug: Log the most recent data to verify calculations
+      if (mostRecentPoint) {
+        // Handle case-insensitive column access (pandas might lowercase)
+        const awake = mostRecentPoint.Awake ?? mostRecentPoint.awake ?? 0;
+        const core = mostRecentPoint.Core ?? mostRecentPoint.core ?? 0;
+        const deep = mostRecentPoint.Deep ?? mostRecentPoint.deep ?? 0;
+        const rem = mostRecentPoint.REM ?? mostRecentPoint.rem ?? 0;
+        const total = mostRecentPoint.TotalSleepHours ?? mostRecentPoint.totalSleepHours ?? 0;
+        
+        const sum = core + deep + rem;
+        const matches = Math.abs(sum - total) < 0.001;
+        
+        console.log('Most recent sleep data:', {
+          date: mostRecentPoint.night,
+          Awake: awake,
+          Core: core,
+          Deep: deep,
+          REM: rem,
+          TotalSleepHours: total,
+          'Core + Deep + REM': sum,
+          'Matches TotalSleepHours': matches,
+          'Difference': Math.abs(sum - total)
+        });
+        
+        if (!matches) {
+          console.warn('WARNING: Core + Deep + REM does not match TotalSleepHours!', {
+            sum,
+            total,
+            difference: Math.abs(sum - total)
+          });
+        }
+        
+        // Update the data with normalized keys to ensure consistency
+        mostRecentPoint.Awake = awake;
+        mostRecentPoint.Core = core;
+        mostRecentPoint.Deep = deep;
+        mostRecentPoint.REM = rem;
+        mostRecentPoint.TotalSleepHours = total;
+      }
       
       // Get the last 7 data points (11-15 to 11-21)
       const lastSevenPoints = data.slice(-7);
