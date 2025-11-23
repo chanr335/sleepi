@@ -384,6 +384,111 @@ p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 .section-title { margin: 32px 0 12px 0; }
 .chevron { color: rgba(255,255,255,0.3); }
 
+/* Calendar / Sleep Program Styles */
+.calendar-card {
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.calendar-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.calendar-header h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.calendar-loading,
+.calendar-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.calendar-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.calendar-hour-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hour-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.hour-icon {
+  color: var(--accent-cyan);
+  opacity: 0.8;
+}
+
+.hour-time {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hour-events {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-left: 28px;
+  padding-left: 16px;
+  border-left: 2px solid rgba(34, 211, 238, 0.2);
+}
+
+.calendar-event {
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.calendar-event:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(4px);
+}
+
+.event-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.event-content {
+  flex: 1;
+}
+
+.event-title {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.event-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .profile-header {
   display: flex;
   flex-direction: column;
