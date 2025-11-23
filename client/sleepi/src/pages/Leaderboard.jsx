@@ -17,12 +17,12 @@ const CATEGORIES = [
 ];
 
 const DATE_FILTERS = [
+  { id: 'day', label: 'Past Day', days: 1 },
+  { id: 'week', label: 'Week', days: 7 },
+  { id: 'month', label: 'Month', days: 30 },
+  { id: '6months', label: '6 Months', days: 180 },
+  { id: 'year', label: 'Year', days: 365 },
   { id: 'all', label: 'All Time', days: null },
-  { id: 'week', label: 'Last Week', days: 7 },
-  { id: 'month', label: 'Last Month', days: 30 },
-  { id: '3months', label: 'Last 3 Months', days: 90 },
-  { id: '6months', label: 'Last 6 Months', days: 180 },
-  { id: 'year', label: 'Last Year', days: 365 },
 ];
 
 const Leaderboard = () => {

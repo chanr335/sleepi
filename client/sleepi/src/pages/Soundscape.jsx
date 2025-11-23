@@ -101,7 +101,7 @@ export default function Soundscape() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: "sarah",  // You can change this to any username from your sleep data
+          username: "eileen",  // You can change this to any username from your sleep data
           duration_seconds: durationSeconds,
           mood: "stressed but trying to relax"
         }),
