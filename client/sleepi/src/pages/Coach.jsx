@@ -10,6 +10,7 @@ function Coach() {
   const [isLoading, setIsLoading] = useState(true);
   const [dailyTip, setDailyTip] = useState('');
   const [insight, setInsight] = useState('');
+  const [percentageChange, setPercentageChange] = useState(null);
 
   // Get today's date formatted
   const today = new Date();
@@ -168,6 +169,7 @@ function Coach() {
       // Set daily tip and insight
       setDailyTip(data.daily_tip || '');
       setInsight(data.weekly_insight?.insight || '');
+      setPercentageChange(data.weekly_insight?.percentage_change ?? null);
       
       // Parse daily_schedule into events
       if (data.daily_schedule && Array.isArray(data.daily_schedule)) {
@@ -183,6 +185,7 @@ function Coach() {
       setEvents([]);
       setDailyTip('');
       setInsight('');
+      setPercentageChange(null);
     } finally {
       setIsLoading(false);
     }
@@ -217,6 +220,11 @@ function Coach() {
       <GlassCard className="insight-card">
         <div className="card-header-row">
           <h3><Zap size={16} color="#22d3ee" /> Insight</h3>
+          {percentageChange !== null && (
+            <span className={`badge ${percentageChange >= 0 ? 'badge-green' : 'badge-red'}`}>
+              {percentageChange >= 0 ? '+' : ''}{percentageChange.toFixed(1)}%
+            </span>
+          )}
         </div>
         <p>{insight || 'Loading your insight...'}</p>
       </GlassCard>
