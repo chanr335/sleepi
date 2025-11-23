@@ -74,28 +74,15 @@ const Dashboard = () => {
       const lastPoint = data[data.length - 1];
       setLastNightData(lastPoint);
       
-      // Get the last 5 data points (most recent dates: 17, 18, 19, 20, 21)
-      const lastFivePoints = data.slice(-5);
+      // Get the last 7 data points
+      const lastSevenPoints = data.slice(-7);
       
       // Transform the data to match the chart format
-      const transformedData = lastFivePoints.map((point, index) => {
-        // Parse date string directly to avoid timezone issues
-        // point.night should be in format "YYYY-MM-DD"
-        const dateStr = String(point.night).substring(0, 10); // Take first 10 chars (YYYY-MM-DD)
-        const dateParts = dateStr.split('-');
-        
-        if (dateParts.length !== 3) {
-          console.error('Invalid date format:', point.night);
-          return {
-            day: 'Invalid',
-            hours: point.TotalSleepHours,
-            fullData: point
-          };
-        }
-        
-        // Format as MM-DD (e.g., "2025-11-17" -> "11-17")
-        const month = dateParts[1];
-        const day = dateParts[2];
+      const transformedData = lastSevenPoints.map((point, index) => {
+        // Format date as MM-DD (e.g., "2025-02-03" -> "02-03")
+        const date = new Date(point.night);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
         const formattedDate = `${month}-${day}`;
         
         return {
@@ -285,7 +272,7 @@ const Dashboard = () => {
               <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
               <Bar dataKey="hours" radius={[4, 4, 4, 4]}>
                 {sleepData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.hours >= 7 ? '#22d3ee' : '#6366f1'} />
+                  <Cell key={`cell-${index}`} fill={entry.hours >= 7 ? '#22d3ee' : '#3b82f6'} />
                 ))}
               </Bar>
             </BarChart>
