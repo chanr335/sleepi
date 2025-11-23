@@ -7,7 +7,7 @@ import Button from '../components/Button';
 import CircularProgress from '../components/CircularProgress';
 import '../index.css';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,7 +66,7 @@ const Dashboard = () => {
   // Fetch sleep data function - can be called to refresh data
   const fetchSleepData = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/sleep/eileen');
+      const response = await fetch(`${API_BASE_URL}/sleep/eileen`);
       const data = await response.json();
       
       // Get the last data point for "Last Night's Sleep"
@@ -205,7 +205,7 @@ const Dashboard = () => {
     } catch (error) {
       let errorMessage = 'Error logging sleep: ';
       if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
-        errorMessage += 'Could not connect to the server. Please make sure the server is running on http://localhost:8000';
+        errorMessage += `Could not connect to the server. Please make sure the server is running on ${API_BASE_URL}`;
       } else {
         errorMessage += error.message;
       }

@@ -11,6 +11,21 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from pathlib import Path
 from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+# Add this Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins (for development only)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ... rest of your endpoints
 
 # Load environment variables from .env file (if it exists)
 load_dotenv()

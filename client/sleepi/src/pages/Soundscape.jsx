@@ -4,6 +4,8 @@ import GlassCard from "../components/GlassCard";
 import Button from "../components/Button";
 import "../index.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function Soundscape() {
   const [aiAudioUrl, setAiAudioUrl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -94,7 +96,7 @@ export default function Soundscape() {
     setAiAudioUrl(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/sleep-asmr", {
+      const res = await fetch(`${API_BASE_URL}/api/sleep-asmr`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

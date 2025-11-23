@@ -3,7 +3,7 @@ import { Lightbulb, Zap } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import '../index.css';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function Coach() {
   const [events, setEvents] = useState([]);
@@ -160,7 +160,7 @@ function Coach() {
   const fetchEvents = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/generate_schedule/eileen');
+      const response = await fetch(`${API_BASE_URL}/generate_schedule/eileen`);
       if (!response.ok) {
         throw new Error('Failed to fetch schedule data');
       }
