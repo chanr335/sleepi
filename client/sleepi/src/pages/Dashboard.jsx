@@ -74,15 +74,28 @@ const Dashboard = () => {
       const lastPoint = data[data.length - 1];
       setLastNightData(lastPoint);
       
-      // Get the last 5 data points
+      // Get the last 5 data points (most recent dates: 17, 18, 19, 20, 21)
       const lastFivePoints = data.slice(-5);
       
       // Transform the data to match the chart format
       const transformedData = lastFivePoints.map((point, index) => {
-        // Format date as MM-DD (e.g., "2025-02-03" -> "02-03")
-        const date = new Date(point.night);
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
+        // Parse date string directly to avoid timezone issues
+        // point.night should be in format "YYYY-MM-DD"
+        const dateStr = String(point.night).substring(0, 10); // Take first 10 chars (YYYY-MM-DD)
+        const dateParts = dateStr.split('-');
+        
+        if (dateParts.length !== 3) {
+          console.error('Invalid date format:', point.night);
+          return {
+            day: 'Invalid',
+            hours: point.TotalSleepHours,
+            fullData: point
+          };
+        }
+        
+        // Format as MM-DD (e.g., "2025-11-17" -> "11-17")
+        const month = dateParts[1];
+        const day = dateParts[2];
         const formattedDate = `${month}-${day}`;
         
         return {
@@ -265,7 +278,7 @@ const Dashboard = () => {
                 fontSize={12} 
                 tickLine={false} 
                 axisLine={false}
-                domain={['dataMin - 1', 'dataMax + 1']}
+                domain={[0, 10]}
                 tickFormatter={(value) => `${value.toFixed(1)}h`}
                 width={50}
               />
@@ -361,7 +374,16 @@ const Dashboard = () => {
               </div>
               <h2 className="confirmation-title">Successfully logged your sleep!</h2>
               <p className="confirmation-message">
-                {formatHours(confirmationData.hours)} on {new Date(confirmationData.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {formatHours(confirmationData.hours)} on {(() => {
+                  // Parse date string directly to avoid timezone issues
+                  const dateStr = String(confirmationData.date).substring(0, 10);
+                  const dateParts = dateStr.split('-');
+                  if (dateParts.length === 3) {
+                    const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  }
+                  return confirmationData.date;
+                })()}
               </p>
               <Button onClick={handleCloseConfirmation} className="confirmation-close-btn">
                 Got it!

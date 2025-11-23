@@ -331,7 +331,22 @@ def get_sleep_for_user(username: str):
             detail=f"No sleep data found for user '{username}'. Expected file: {file_path.name}"
         )
 
-    df = pd.read_csv(file_path)
+    # Read CSV and ensure 'night' column stays as string to avoid date conversion issues
+    df = pd.read_csv(file_path, dtype={'night': str})
+    # Ensure night column is in YYYY-MM-DD format (first 10 chars)
+    df['night'] = df['night'].astype(str).str[:10]
+    
+    # Sort by date to ensure most recent is last
+    try:
+        df['_night_datetime'] = pd.to_datetime(df['night'], format='%Y-%m-%d', errors='coerce')
+        df = df.sort_values('_night_datetime').reset_index(drop=True)
+        df = df.drop(columns=['_night_datetime'])
+        # Ensure night is still string format
+        df['night'] = df['night'].astype(str).str[:10]
+    except Exception as e:
+        print(f"Warning: Could not sort by date: {e}")
+        # Keep data as-is if sorting fails
+    
     return df.to_dict(orient="records")
 
 
@@ -380,7 +395,9 @@ def get_total(username: str):
 @app.post("/sleep/{username}/log")
 def log_sleep(username: str, sleep_entry: SleepLogEntry):
     """
-    Logs a new sleep entry for the given user by appending it to their CSV file.
+    Logs or updates a sleep entry for the given user.
+    If an entry for the same date already exists, it will be updated.
+    Otherwise, a new entry will be added.
     Creates the file if it doesn't exist.
     
     Required fields:
@@ -413,25 +430,84 @@ def log_sleep(username: str, sleep_entry: SleepLogEntry):
         if file_path.exists():
             # Read existing CSV
             df = pd.read_csv(file_path)
-            # Append new row
-            new_df = pd.DataFrame([new_row])
-            df = pd.concat([df, new_df], ignore_index=True)
+            
+            # Ensure we have the night column as string for comparison
+            # Normalize dates to YYYY-MM-DD format (first 10 characters)
+            df['night'] = df['night'].astype(str).str[:10]
+            
+            # Check if an entry for this date already exists
+            # Normalize both dates to string format for comparison (YYYY-MM-DD only)
+            entry_date_str = str(sleep_entry.night)[:10]  # Take only date part, no time
+            existing_mask = df['night'] == entry_date_str
+            
+            if existing_mask.any():
+                # Update existing row(s) - if multiple exist, update all (shouldn't happen, but handle it)
+                matching_indices = df[existing_mask].index
+                if len(matching_indices) > 1:
+                    # If duplicates exist, keep only the first one and update it
+                    print(f"Warning: Found {len(matching_indices)} entries for date {entry_date_str}, removing duplicates")
+                    df = df[~existing_mask | (df.index == matching_indices[0])]
+                    existing_mask = df.index == matching_indices[0]
+                
+                # Update the row
+                for col in new_row.keys():
+                    if col in df.columns:
+                        df.loc[existing_mask, col] = new_row[col]
+                action = "updated"
+            else:
+                # Append new row
+                new_df = pd.DataFrame([new_row])
+                df = pd.concat([df, new_df], ignore_index=True)
+                action = "added"
         else:
             # Create new DataFrame with the entry
             df = pd.DataFrame([new_row])
+            action = "added"
         
         # Ensure columns are in the correct order
         df = df[column_order]
         
-        # Save to CSV
+        # Sort by date to keep data organized
+        # Convert to datetime for sorting, then back to string format
+        # Use format='%Y-%m-%d' to avoid timezone issues
+        try:
+            # Store original night values as strings
+            df['night'] = df['night'].astype(str)
+            # Convert to datetime for sorting - use format to avoid timezone conversion
+            df['_night_datetime'] = pd.to_datetime(df['night'], format='%Y-%m-%d', errors='coerce')
+            # Sort by datetime
+            df = df.sort_values('_night_datetime').reset_index(drop=True)
+            # Drop the temporary datetime column
+            df = df.drop(columns=['_night_datetime'])
+            # Convert back to string format, preserving YYYY-MM-DD exactly
+            # Extract just the date part to avoid any timezone shifts
+            df['night'] = df['night'].astype(str).str[:10]  # Take first 10 chars (YYYY-MM-DD)
+        except Exception as date_error:
+            # If date sorting fails, just keep the data as-is but log the error
+            print(f"Warning: Date sorting failed: {date_error}")
+            import traceback
+            print(traceback.format_exc())
+            # Ensure night is still a string in YYYY-MM-DD format
+            df['night'] = df['night'].astype(str).str[:10]
+        
+        # Save to CSV - ensure we're writing to the correct path
+        print(f"Writing to CSV file: {file_path}")
+        print(f"DataFrame shape: {df.shape}")
+        print(f"DataFrame columns: {df.columns.tolist()}")
         df.to_csv(file_path, index=False)
+        print(f"Successfully wrote to {file_path}")
         
         return {
-            "message": f"Sleep entry logged successfully for {username}",
+            "message": f"Sleep entry {action} successfully for {username}",
             "night": sleep_entry.night,
-            "total_sleep_hours": sleep_entry.TotalSleepHours
+            "total_sleep_hours": sleep_entry.TotalSleepHours,
+            "action": action
         }
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in log_sleep: {e}")
+        print(f"Traceback: {error_trace}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to log sleep entry: {str(e)}"
