@@ -9,16 +9,16 @@
   --text-tertiary: #A1A1AA; /* Inactive icons and descriptions */
   
   /* Muted Accent Colors - Beige/Cream/Soft Gold */
-  --accent-primary: #D4AF7A; /* Desaturated beige/gold */
-  --accent-primary-muted: rgba(212, 175, 122, 0.6); /* Muted version */
-  --accent-secondary: #C9A87F; /* Soft gold */
-  --accent-tertiary: #E8D5B7; /* Cream */
+  --accent-primary: #E8C085; /* Desaturated beige/gold - 35% more saturated */
+  --accent-primary-muted: rgba(232, 192, 133, 0.6); /* Muted version */
+  --accent-secondary: #D9B88F; /* Soft gold - 35% more saturated */
+  --accent-tertiary: #F0E0C0; /* Cream - 35% more saturated */
   
   /* Soft Color Palette */
-  --soft-yellow: #EEDC9A;
-  --sage-green: #C3D7C7;
-  --soft-purple: #B5BBE5;
-  --muted-blue: #9FB8E3;
+  --soft-yellow: #F5E8A5; /* 35% more saturated */
+  --sage-green: #B8E5D0; /* 35% more saturated */
+  --soft-purple: #9FA5F0; /* 35% more saturated */
+  --muted-blue: #8BA5F0; /* 35% more saturated */
   
   /* Interactive Elements */
   --glass-bg: #1C1C1E; /* Surface background */
@@ -282,14 +282,14 @@ p {
   border: 1px solid var(--border-subtle);
 }
 .badge-green {
-  background: rgba(212, 175, 122, 0.15);
+  background: rgba(232, 192, 133, 0.15);
   color: var(--accent-primary);
-  border: 1px solid rgba(212, 175, 122, 0.3);
+  border: 1px solid rgba(232, 192, 133, 0.3);
 }
 .badge-red {
-  background: rgba(168, 148, 122, 0.15);
+  background: rgba(217, 184, 143, 0.15);
   color: var(--accent-secondary);
-  border: 1px solid rgba(168, 148, 122, 0.3);
+  border: 1px solid rgba(217, 184, 143, 0.3);
 }
 
 .sleep-metrics-grid {
@@ -357,10 +357,10 @@ p {
   border: 1px solid var(--border-subtle);
 }
 
-.icon-indigo { background: rgba(238, 220, 154, 0.15); color: var(--soft-yellow); }
-.icon-cyan { background: rgba(195, 215, 199, 0.15); color: var(--sage-green); }
-.icon-yellow { background: rgba(181, 187, 229, 0.15); color: var(--soft-purple); }
-.icon-pink { background: rgba(159, 184, 227, 0.15); color: var(--muted-blue); }
+.icon-indigo { background: rgba(245, 232, 165, 0.15); color: var(--soft-yellow); }
+.icon-cyan { background: rgba(184, 229, 208, 0.15); color: var(--sage-green); }
+.icon-yellow { background: rgba(159, 165, 240, 0.15); color: var(--soft-purple); }
+.icon-pink { background: rgba(139, 165, 240, 0.15); color: var(--muted-blue); }
 
 .chart-container { 
   height: 200px; 
@@ -418,8 +418,8 @@ p {
   border: 1px solid var(--border-subtle);
 }
 .list-item.highlight-me {
-  border-color: rgba(212, 175, 122, 0.3);
-  background: rgba(212, 175, 122, 0.1);
+  border-color: rgba(232, 192, 133, 0.3);
+  background: rgba(232, 192, 133, 0.1);
 }
 .list-item.clickable { cursor: pointer; transition: background 0.2s; }
 .list-item.clickable:hover { background: var(--bg-surface-alt); }
@@ -508,7 +508,7 @@ p {
   gap: 12px;
   margin-left: 28px;
   padding-left: 16px;
-  border-left: 2px solid rgba(181, 187, 229, 0.2);
+  border-left: 2px solid rgba(159, 165, 240, 0.2);
 }
 
 .calendar-event {

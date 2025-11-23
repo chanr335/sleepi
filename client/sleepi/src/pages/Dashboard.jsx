@@ -271,8 +271,8 @@ const Dashboard = () => {
               <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
               <Bar dataKey="hours" radius={[4, 4, 4, 4]}>
                 {sleepData.map((entry, index) => {
-                  // Rotate through soft colors
-                  const softColors = ['#EEDC9A', '#C3D7C7', '#B5BBE5', '#9FB8E3'];
+                  // Rotate through soft colors - 35% more saturated
+                  const softColors = ['#F5E8A5', '#B8E5D0', '#9FA5F0', '#8BA5F0'];
                   const colorIndex = index % softColors.length;
                   return <Cell key={`cell-${index}`} fill={softColors[colorIndex]} />;
                 })}

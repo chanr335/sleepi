@@ -38,7 +38,7 @@ export default function Soundscape() {
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        background: #D4AF7A;
+        background: #E8C085;
         cursor: pointer;
         border: 2px solid rgba(255, 255, 255, 0.1);
         margin-top: -6px;
@@ -48,17 +48,17 @@ export default function Soundscape() {
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        background: #D4AF7A;
+        background: #E8C085;
         cursor: pointer;
         border: 2px solid rgba(255, 255, 255, 0.1);
       }
       
       #duration-slider::-webkit-slider-thumb:hover {
-        background: #C9A87F;
+        background: #D9B88F;
       }
       
       #duration-slider::-moz-range-thumb:hover {
-        background: #C9A87F;
+        background: #D9B88F;
       }
     `;
     

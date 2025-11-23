@@ -169,7 +169,7 @@ const Leaderboard = () => {
           <p>Compete with your friends.</p>
         </header>
         <GlassCard className="center-content">
-          <p style={{ color: '#C9A87F' }}>{error}</p>
+          <p style={{ color: '#D9B88F' }}>{error}</p>
         </GlassCard>
       </div>
     );
@@ -218,9 +218,9 @@ const Leaderboard = () => {
                       <Trophy 
                         size={20} 
                         color={
-                          user.rank === 1 ? '#D4AF7A' :
-                          user.rank === 2 ? '#E8D5B7' :
-                                            '#C9A87F'
+                          user.rank === 1 ? '#E8C085' :
+                          user.rank === 2 ? '#F0E0C0' :
+                                            '#D9B88F'
                         } 
                       />
                     ) : (
@@ -266,7 +266,7 @@ const Leaderboard = () => {
               padding: '0.5rem 1rem',
               borderRadius: '18px',
               border: '1px solid rgba(255, 255, 255, 0.1)',
-              backgroundColor: selectedCategory === category.id ? 'rgba(212, 175, 122, 0.2)' : '#1C1C1E',
+              backgroundColor: selectedCategory === category.id ? 'rgba(232, 192, 133, 0.2)' : '#1C1C1E',
               color: selectedCategory === category.id ? '#FFFFFF' : '#8E8E93',
               cursor: 'pointer',
               fontSize: '0.875rem',
@@ -357,7 +357,7 @@ const Leaderboard = () => {
                     padding: '0.5rem 1rem',
                     borderRadius: '12px',
                     border: 'none',
-                    backgroundColor: selectedDateFilter === filter.id ? 'rgba(212, 175, 122, 0.2)' : 'transparent',
+                    backgroundColor: selectedDateFilter === filter.id ? 'rgba(232, 192, 133, 0.2)' : 'transparent',
                     color: selectedDateFilter === filter.id ? '#FFFFFF' : '#8E8E93',
                     cursor: 'pointer',
                     fontSize: '0.875rem',
