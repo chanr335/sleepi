@@ -261,6 +261,7 @@ p {
 }
 .progress-ring-fill {
   color: var(--accent-primary);
+
   stroke-linecap: round;
 }
 
