@@ -2,7 +2,7 @@
 hack western 2025
 
 How to run the webapp on phone:
-1. connect to eduroam
+1. connect to eduroam on both devices
 
 2. set up the client
 ```
@@ -11,7 +11,7 @@ npm run dev -- --host
 ```
 take your eduroam ip and put it in /client/sleepi/.env
 ie:
-VITE_API_URL=123.12.12.12:8000
+VITE_API_URL=http://123.12.12.12:8000
 
 3. set up the server
 ```
