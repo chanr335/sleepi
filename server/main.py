@@ -23,7 +23,7 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 if not GEMINI_API_KEY:
     raise EnvironmentError("GEMINI_API_KEY environment variable not set. Please set it or ensure your .env file is configured.")
 
-MODEL_NAME = "gemini-2.5-flash-lite"
+MODEL_NAME = "gemini-2.0-flash-lite"
 API_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
 
 # ElevenLabs configuration (optional - only needed for TTS endpoints)
