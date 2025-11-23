@@ -1,4 +1,4 @@
-# Sleepi
+# sleepi
 
 A sleep leaderboard and AI-powered sleep coaching application built for Hack Western 2025.
 
