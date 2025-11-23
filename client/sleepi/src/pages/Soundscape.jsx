@@ -8,6 +8,7 @@ export default function Soundscape() {
   const [aiAudioUrl, setAiAudioUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState(300); // Default 5 minutes (300 seconds)
+  const [selectedVoice, setSelectedVoice] = useState("delilah"); // Default voice
 
   // Add slider styles
   useEffect(() => {
@@ -103,7 +104,8 @@ export default function Soundscape() {
         body: JSON.stringify({
           username: "eileen",  // You can change this to any username from your sleep data
           duration_seconds: durationSeconds,
-          mood: "stressed but trying to relax"
+          mood: "stressed but trying to relax",
+          voice: selectedVoice
         }),
       });
 
@@ -182,6 +184,50 @@ export default function Soundscape() {
             <span>10s</span>
             <span>30m</span>
           </div>
+        </div>
+
+        <div style={{ marginTop: 24, width: "100%", padding: "8px 0" }}>
+          <label style={{ display: "block", marginBottom: 12, fontSize: "14px", fontWeight: 500 }}>
+            Voice
+          </label>
+          <select
+            value={selectedVoice}
+            onChange={(e) => setSelectedVoice(e.target.value)}
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              fontSize: "14px",
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              borderRadius: "8px",
+              color: "#fff",
+              outline: "none",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.6 : 1,
+              appearance: "none",
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 12px center",
+              paddingRight: "36px",
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <option value="delilah" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+              Delilah
+            </option>
+            <option value="vincent" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+              Vincent
+            </option>
+            <option value="tiza" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+              Tiza
+            </option>
+          </select>
         </div>
 
         <Button

@@ -27,8 +27,10 @@ MODEL_NAME = "gemini-2.5-flash-preview-09-2025"
 API_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
 
 # ElevenLabs configuration (optional - only needed for TTS endpoints)
-ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
-ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID')
+ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')  # API key for all voices
+ELEVENLABS_VOICE_ID_DELILAH = os.environ.get('ELEVENLABS_VOICE_ID_DELILAH')
+ELEVENLABS_VOICE_ID_VINCENT = os.environ.get('ELEVENLABS_VOICE_ID_VINCENT')
+ELEVENLABS_VOICE_ID_TIZA = os.environ.get('ELEVENLABS_VOICE_ID_TIZA')
 
 # --- Pydantic Schemas ---
 
@@ -49,6 +51,7 @@ class ASMRRequest(BaseModel):
     username: str = Field(..., description="Username to generate personalized sleep story for")
     duration_seconds: int = Field(default=300, description="Duration of the sleep story in seconds (10-1800)")
     mood: str = Field(default="tired after a long day", description="Current mood or state of mind")
+    voice: str = Field(default="delilah", description="Voice to use: 'delilah', 'vincent', or 'tiza'")
 class SleepLogEntry(BaseModel):
     """Structure for logging a new sleep entry. Only night and TotalSleepHours are required."""
     night: str = Field(..., description="Date of the night (e.g., '2025-01-15').")
@@ -232,18 +235,37 @@ Write the script now:
         raise HTTPException(status_code=500, detail=f"Failed to generate ASMR script: {str(e)}")
 
 
-async def tts_with_elevenlabs(text: str) -> bytes:
+async def tts_with_elevenlabs(text: str, voice: str = "delilah") -> bytes:
     """
     Converts text to speech using ElevenLabs API.
     Returns the audio bytes.
+    
+    Args:
+        text: The text to convert to speech
+        voice: The voice to use ('delilah', 'vincent', or 'tiza')
     """
-    if not ELEVENLABS_API_KEY or not ELEVENLABS_VOICE_ID:
+    # Select voice ID based on voice selection
+    voice_id_map = {
+        "delilah": ELEVENLABS_VOICE_ID_DELILAH,
+        "vincent": ELEVENLABS_VOICE_ID_VINCENT,
+        "tiza": ELEVENLABS_VOICE_ID_TIZA,
+    }
+    
+    voice_id = voice_id_map.get(voice.lower())
+    
+    if not voice_id:
         raise HTTPException(
-            status_code=500,
-            detail="ElevenLabs API key or voice ID not configured"
+            status_code=400,
+            detail=f"Invalid voice '{voice}'. Must be one of: delilah, vincent, tiza"
         )
     
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+    if not ELEVENLABS_API_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="ElevenLabs API key not configured. Please set ELEVENLABS_API_KEY in environment variables."
+        )
+    
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     
     headers = {
         "xi-api-key": ELEVENLABS_API_KEY,
@@ -715,8 +737,8 @@ async def create_sleep_asmr(req: ASMRRequest):
         # Generate the sleep script using Gemini
         script = await generate_sleep_script(req.username, req.duration_seconds, req.mood)
         
-        # Convert to speech using ElevenLabs
-        audio_bytes = await tts_with_elevenlabs(script)
+        # Convert to speech using ElevenLabs with selected voice
+        audio_bytes = await tts_with_elevenlabs(script, req.voice)
         
         # Return as streaming audio response
         return StreamingResponse(
