@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -16,7 +16,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Configuration ---
-DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "parsed"
+# NOTE: This directory path must exist on your server for the file reading to work.
+DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "parsed" 
 
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 if not GEMINI_API_KEY:
@@ -31,17 +32,17 @@ ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID')
 
 # --- Pydantic Schemas ---
 
-class ScheduleEntry(BaseModel):
-    """Defines the structure for a single day in the generated schedule."""
-    day: str = Field(..., description="The day of the week (e.g., Monday).")
-    target_bed_time: str = Field(..., description="The suggested target bedtime (e.g., 10:30 PM).")
-    target_wake_time: str = Field(..., description="The suggested target wake time (e.g., 6:30 AM).")
-    reasoning: str = Field(..., description="A short explanation for the suggested times.")
-    daily_actions: List[str] = Field(..., description="5-7 simple, actionable steps that can be easily done at home (e.g., 'Stop drinking coffee after 2:00 PM').")
+class WeeklyInsight(BaseModel):
+    """Insight comparing the latest day to the day from 7 days ago."""
+    assessment: str = Field(..., description="Assessment of the change (e.g., 'improved', 'worsened', 'unchanged').")
+    insight: str = Field(..., description="Brief insight comparing the latest day to the day from the prior week.")
+    percentage_change: Optional[float] = Field(..., description="Percentage change in sleep quality (positive = better, negative = worse). Can be None if no comparison data available.")
 
 class ScheduleResponse(BaseModel):
     """The overall structure for the AI's schedule output."""
-    personalized_schedule: List[ScheduleEntry] = Field(..., description="A 7-day schedule to improve sleep.")
+    daily_tip: str = Field(..., description="A general daily tip on how to improve sleep.")
+    weekly_insight: WeeklyInsight = Field(..., description="Insight comparing the most recent week of sleep data.")
+    daily_schedule: List[str] = Field(..., description="3-4 actionable items throughout the day with SPECIFIC CLOCK TIMES to benefit sleep.")
 
 class ASMRRequest(BaseModel):
     """Request model for generating ASMR sleep audio."""
@@ -420,8 +421,11 @@ def log_sleep(username: str, sleep_entry: SleepLogEntry):
 @app.get('/generate_schedule/{username}')
 async def generate_schedule(username: str):
     """
-    Reads CSV file for the given username, analyzes the sleep data, creates a prompt,
-    requests a structured JSON schedule from Gemini, and returns the schedule.
+    Reads CSV file for the given username, analyzes the sleep data (comparing most recent week),
+    creates a prompt, requests structured JSON from Gemini, and returns:
+    - daily_tip: A general tip on how to improve sleep
+    - weekly_insight: Assessment and score comparing the most recent week's sleep data
+    - daily_schedule: 3-4 actionable items throughout the day with SPECIFIC CLOCK TIMES to benefit sleep
     """
     try:
         # --- PHASE 1: Data Ingestion and Analysis (using Pandas) ---
@@ -447,25 +451,122 @@ async def generate_schedule(username: str):
 
         # Convert hours (which are floats in the data) to readable format if needed, but we'll use averages
         
-        # Calculate key metrics
+        # Sort by date to get most recent data first (assuming 'night' column is date)
+        df['night'] = pd.to_datetime(df['night'])
+        df = df.sort_values('night', ascending=False).reset_index(drop=True)
+        
+        # Get the most recent day (latest day)
+        if len(df) == 0:
+            raise ValueError("No sleep data available")
+        
+        latest_day = df.iloc[0]
+        latest_date = latest_day['night']
+        latest_sleep = latest_day['TotalSleepHours']
+        latest_in_bed = latest_day['InBed']
+        latest_efficiency = (latest_sleep / latest_in_bed * 100) if latest_in_bed > 0 else 0
+        
+        # Find the day from approximately 7 days ago
+        # Look for the closest day to 7 days before the latest day
+        target_date = latest_date - pd.Timedelta(days=7)
+        week_ago_day = None
+        week_ago_sleep = None
+        week_ago_in_bed = None
+        week_ago_efficiency = None
+        week_ago_date = None
+        
+        # Find the closest day to 7 days ago (within 3 days range)
+        for idx, row in df.iterrows():
+            days_diff = abs((row['night'] - target_date).days)
+            if days_diff <= 3:  # Allow 3 days tolerance
+                week_ago_day = row
+                week_ago_date = row['night']
+                week_ago_sleep = row['TotalSleepHours']
+                week_ago_in_bed = row['InBed']
+                week_ago_efficiency = (week_ago_sleep / week_ago_in_bed * 100) if week_ago_in_bed > 0 else 0
+                break
+        
+        # Calculate percentage change (positive = better, negative = worse)
+        # Use a composite score based on sleep duration and efficiency
+        if week_ago_day is not None:
+            # Calculate a simple sleep quality score (0-100) for comparison
+            # Weight: 60% sleep duration (target 7.5-8.5 hours), 40% efficiency (target >85%)
+            def calculate_sleep_score(sleep_hours, efficiency):
+                # Sleep duration score (0-60 points)
+                if sleep_hours >= 7.5 and sleep_hours <= 8.5:
+                    duration_score = 60  # Perfect range
+                elif sleep_hours < 7.5:
+                    duration_score = max(0, (sleep_hours / 7.5) * 60)  # Linear scale
+                else:  # > 8.5
+                    duration_score = max(0, 60 - ((sleep_hours - 8.5) / 2.5) * 20)  # Penalize oversleeping
+                
+                # Efficiency score (0-40 points)
+                efficiency_score = min(40, (efficiency / 85) * 40) if efficiency <= 85 else 40
+                
+                return duration_score + efficiency_score
+            
+            latest_score = calculate_sleep_score(latest_sleep, latest_efficiency)
+            week_ago_score = calculate_sleep_score(week_ago_sleep, week_ago_efficiency)
+            
+            # Calculate percentage change
+            if week_ago_score > 0:
+                percentage_change = ((latest_score - week_ago_score) / week_ago_score) * 100
+            else:
+                percentage_change = 0 if latest_score == 0 else 100
+            
+            comparison_available = True
+        else:
+            # No data from 7 days ago available
+            percentage_change = 0.0
+            comparison_available = False
+        
+        # Calculate key metrics for all data
         avg_sleep_duration = df['TotalSleepHours'].mean()
         avg_time_in_bed = df['InBed'].mean()
         
         # Calculate average awake time (approximate: TimeInBed - TotalSleepHours)
-        # Note: We must handle potential negative values or NaN if data is incomplete
         df['AwakeTime'] = df['InBed'] - df['TotalSleepHours']
         avg_awake_time = df['AwakeTime'].mean() if not df['AwakeTime'].empty else 0
         
         # Calculate sleep efficiency (Ratio of time slept to total time in bed)
         sleep_efficiency = (avg_sleep_duration / avg_time_in_bed) * 100 if avg_time_in_bed > 0 else 0
 
+        # Get the most recent week (last 7 days with data) for context
+        recent_week = df.head(7).copy()
+        recent_week_sleep = recent_week['TotalSleepHours'].mean()
+        recent_week_in_bed = recent_week['InBed'].mean()
+        recent_week['AwakeTime'] = recent_week['InBed'] - recent_week['TotalSleepHours']
+        recent_week_awake = recent_week['AwakeTime'].mean() if not recent_week['AwakeTime'].empty else 0
+        recent_week_efficiency = (recent_week_sleep / recent_week_in_bed) * 100 if recent_week_in_bed > 0 else 0
+
         # Create a summary of the user's sleep profile
+        if comparison_available:
+            change_status = 'improved' if percentage_change > 0 else 'worsened' if percentage_change < 0 else 'unchanged'
+            comparison_text = f"""
+        DAY-TO-DAY COMPARISON:
+        - Latest Day ({latest_date.strftime('%Y-%m-%d')}): {latest_sleep:.2f} hours sleep, {latest_efficiency:.1f}% efficiency
+        - Week Ago ({week_ago_date.strftime('%Y-%m-%d')}): {week_ago_sleep:.2f} hours sleep, {week_ago_efficiency:.1f}% efficiency
+        - Change: {percentage_change:+.1f}% ({change_status})
+        """
+        else:
+            comparison_text = f"""
+        DAY-TO-DAY COMPARISON:
+        - Latest Day ({latest_date.strftime('%Y-%m-%d')}): {latest_sleep:.2f} hours sleep, {latest_efficiency:.1f}% efficiency
+        - Week Ago: No data available for comparison (need at least 7 days of historical data)
+        """
+        
         sleep_profile = f"""
         USER SLEEP PROFILE ANALYSIS (based on the last {len(df)} nights of Apple Watch data):
         - Average Total Sleep Duration: {avg_sleep_duration:.2f} hours (Target 7.5 to 8.5 hours).
         - Average Time Awake During Night (Approx): {avg_awake_time:.2f} hours.
         - Average Time in Bed: {avg_time_in_bed:.2f} hours.
         - Sleep Efficiency: {sleep_efficiency:.1f}% (Target >85%).
+        
+        MOST RECENT WEEK ANALYSIS (last 7 days):
+        - Average Total Sleep Duration: {recent_week_sleep:.2f} hours.
+        - Average Time Awake During Night: {recent_week_awake:.2f} hours.
+        - Average Time in Bed: {recent_week_in_bed:.2f} hours.
+        - Sleep Efficiency: {recent_week_efficiency:.1f}%.
+        {comparison_text}
         """
         
         # --- PHASE 2: AI Prompt Construction and Structured API Call ---
@@ -475,64 +576,76 @@ async def generate_schedule(username: str):
         Analyze the following sleep profile data:
         {sleep_profile}
 
-        Based on this data, generate a 7-day personalized sleep schedule. The goal is to:
-        1. Increase the user's average sleep duration to at least 7.5 hours.
-        2. Improve Sleep Efficiency above 85%.
-        3. Suggest a consistent 'Target Bed Time' and 'Target Wake Time' that gradually achieves these goals.
+        Based on this data, generate a personalized sleep improvement response with three components:
 
-        CRITICAL REQUIREMENTS for 'daily_actions':
-        - Provide 5-7 simple, actionable steps that can be easily done at home
-        - All steps must use items/resources available in a typical home (no special equipment, apps, or purchases needed)
-        - Each action should be:
-          * Clear and specific with exact times (e.g., "Stop drinking coffee after 2:00 PM" not "Limit caffeine")
-          * Actionable with a specific time or trigger (e.g., "Turn off all screens at 10:15 PM" not "Reduce screen time")
-          * Easy to understand without sleep expertise (e.g., "Set your bedroom temperature to 67°F" not "Optimize thermal regulation")
-          * Practical and immediately implementable with things found at home
-          * Focus on simple, free activities (reading, stretching, adjusting temperature, timing meals/drinks)
+        1. DAILY TIP: Provide one general, helpful tip on how to improve sleep (keep it brief, 1-2 sentences).
+
+        2. WEEKLY INSIGHT: Compare the latest day to the day from 7 days ago and provide insight:
+           - The comparison data above shows the calculated percentage change (already calculated)
+           - Use the percentage_change value from the comparison data in your response
+           - Assess whether the sleep has improved, worsened, or stayed the same based on the percentage
+           - Provide a brief insight about what this comparison means for the user's sleep
+           - If the comparison shows "No data available", set percentage_change to 0 and note that in the insight
+
+        3. DAILY SCHEDULE: Provide exactly 4 actionable items that are scheduled with **SPECIFIC CLOCK TIMES** throughout the day to benefit sleep. Use the average sleep duration and efficiency to calculate the best times for the user to implement these actions.
+           - The actions must be sequenced from morning to night.
+           - The specific times must be realistic (e.g., 7:15 AM, 2:30 PM, 7:00 PM, 10:30 PM).
+           - All steps must use items/resources available in a typical home (no special equipment, apps, or purchases needed).
+           - Each action should be:
+             * Clear and specific (e.g., "Stop drinking coffee after 2:00 PM" not "Limit caffeine")
+             * Actionable with a specific time (e.g., "Turn off all screens at 10:15 PM" not "Reduce screen time")
+             * Easy to understand without sleep expertise
+             * Practical and immediately implementable
         
-        Examples of good daily_actions (all home-accessible):
-        - "Stop drinking any liquids after 8:00 PM to avoid bathroom trips"
-        - "Turn off your phone, TV, and computer at 10:15 PM and put them in another room"
-        - "Set your bedroom thermostat to 67°F (19°C) before going to bed"
-        - "Do not eat any food after 9:00 PM"
-        - "Read a physical book (not on a screen) for 20 minutes starting at 10:25 PM"
-        - "Do 10 minutes of gentle stretching in your bedroom before getting into bed"
-        - "Close all curtains and blinds in your bedroom to make it completely dark"
+        Examples of good daily_schedule items with specific times:
+        - "7:15 AM: Get 15 minutes of natural sunlight (look outside a window or step onto a balcony/yard)."
+        - "2:30 PM: Stop drinking any caffeinated beverages for the rest of the day."
+        - "7:00 PM: Stop eating any large meals. Only have light snacks, if necessary."
+        - "10:30 PM: Turn off your phone, TV, and computer and begin your wind-down routine (e.g., read a physical book)."
         
-        Provide a short 'reasoning' for each day's schedule and 5-7 specific 'daily_actions' that are all easily doable at home.
+        Keep all responses concise and actionable.
         """
 
         # 2. Define the system instruction (Sleep Coach Persona)
         system_instruction = {
-            "parts": [{ "text": "You are an expert Sleep Wellness Coach who explains things simply. Your task is to analyze the provided sleep data and generate a 7-day improvement plan with 5-7 clear, actionable steps per day that can be easily done at home with no special equipment. All steps must be accessible and free to implement. Write daily_actions as if explaining to someone who has never researched sleep before. You must strictly adhere to the requested JSON format." }]
+            "parts": [{ "text": "You are an expert Sleep Wellness Coach who explains things simply. Your task is to analyze the provided sleep data and generate: (1) a daily tip, (2) weekly insight with assessment and score, and (3) a concise daily schedule with 4 actions, each tied to a SPECIFIC CLOCK TIME. All steps must be easily done at home with no special equipment. Write as if explaining to someone who has never researched sleep before. You must strictly adhere to the requested JSON format." }]
         }
         
         # 3. Define the structured output configuration (using a Gemini-compatible schema)
-        # Gemini doesn't support $defs, so we need to inline the schema
+        # Note: The daily_schedule description is updated to reflect the new time requirement.
         gemini_schema = {
             "type": "object",
             "properties": {
-                "personalized_schedule": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "day": {"type": "string", "description": "The day of the week (e.g., Monday)."},
-                            "target_bed_time": {"type": "string", "description": "The suggested target bedtime (e.g., 10:30 PM)."},
-                            "target_wake_time": {"type": "string", "description": "The suggested target wake time (e.g., 6:30 AM)."},
-                            "reasoning": {"type": "string", "description": "A short explanation for the suggested times."},
-                            "daily_actions": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "5-7 simple, actionable steps that can be easily done at home (e.g., 'Stop drinking coffee after 2:00 PM')."
-                            }
+                "daily_tip": {
+                    "type": "string",
+                    "description": "A general daily tip on how to improve sleep (1-2 sentences)."
+                },
+                "weekly_insight": {
+                    "type": "object",
+                    "properties": {
+                        "assessment": {
+                            "type": "string",
+                            "description": "Assessment of the change (e.g., 'improved', 'worsened', 'unchanged')."
                         },
-                        "required": ["day", "target_bed_time", "target_wake_time", "reasoning", "daily_actions"]
+                        "insight": {
+                            "type": "string",
+                            "description": "Brief insight comparing the latest day to the day from the prior week."
+                        },
+                        "percentage_change": {
+                            "type": "number",
+                            "description": "Percentage change in sleep quality (positive = better, negative = worse). Use 0 if no comparison data available."
+                        }
                     },
-                    "description": "A 7-day schedule to improve sleep."
+                    "required": ["assessment", "insight", "percentage_change"],
+                    "description": "Insight comparing the latest day to the day from 7 days ago."
+                },
+                "daily_schedule": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Exactly 4 actionable items, each beginning with a SPECIFIC CLOCK TIME (e.g., '7:00 AM:')."
                 }
             },
-            "required": ["personalized_schedule"]
+            "required": ["daily_tip", "weekly_insight", "daily_schedule"]
         }
         
         generation_config = {
@@ -562,11 +675,19 @@ async def generate_schedule(username: str):
             # The structured JSON is inside the first part's text field
             raw_json_string = gemini_result['candidates'][0]['content']['parts'][0]['text']
             
+            # Parse the JSON response
+            result = json.loads(raw_json_string)
+            
+            # Inject the calculated percentage_change to ensure accuracy
+            if 'weekly_insight' in result:
+                # The percentage_change is calculated server-side for accuracy
+                result['weekly_insight']['percentage_change'] = round(percentage_change, 2)
+            
             # FastAPI will automatically validate and serialize this JSON
-            return json.loads(raw_json_string)
+            return result
 
     except ValueError as ve:
-        # Handle custom validation errors (like missing columns)
+        # Handle custom validation errors (like missing columns or no data)
         print(f"Data processing error: {ve}")
         raise HTTPException(status_code=400, detail=str(ve))
     except httpx.HTTPStatusError as err:
