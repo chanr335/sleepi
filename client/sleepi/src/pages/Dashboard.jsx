@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Moon, Activity, Sun, Zap, Bed, Brain, X, CheckCircle, AlertCircle} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import GlassCard from '../components/GlassCard';
@@ -13,8 +14,9 @@ const Dashboard = () => {
   const [date, setDate] = useState('');
   const [sleepHours, setSleepHours] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [username, setUsername] = useState('chandler'); // Default username, can be made dynamic later
+  const [username, setUsername] = useState('eileen'); // Default username, can be made dynamic later
   const [notification, setNotification] = useState(null);
+  const [confirmationData, setConfirmationData] = useState(null); // { hours, date }
 
 
   const [sleepData, setSleepData] = useState([
@@ -35,41 +37,69 @@ const Dashboard = () => {
     return `${h}h ${m}m`;
   };
 
-  useEffect(() => {
-    const fetchSleepData = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:8000/sleep/eileen');
-        const data = await response.json();
-        
-        // Get the last data point for "Last Night's Sleep"
-        const lastPoint = data[data.length - 1];
-        setLastNightData(lastPoint);
-        
-        // Get the last 5 data points
-        const lastFivePoints = data.slice(-5);
-        
-        // Transform the data to match the chart format
-        const transformedData = lastFivePoints.map((point, index) => {
-          // Format date as MM-DD (e.g., "2025-02-03" -> "02-03")
-          const date = new Date(point.night);
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          const formattedDate = `${month}-${day}`;
-          
-          return {
-            day: formattedDate,
-            hours: point.TotalSleepHours,
-            // Store the full data point for potential future use
-            fullData: point
-          };
-        });
-        
-        setSleepData(transformedData);
-      } catch (error) {
-        console.error('Error fetching sleep data:', error);
-      }
-    };
+  // Custom tooltip component for the bar chart
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const hours = payload[0].value;
+      const formattedTime = formatHours(hours);
+      return (
+        <div style={{
+          backgroundColor: '#2a2a2a',
+          border: '1px solid #4338ca',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+        }}>
+          <p style={{ 
+            color: '#a5b4fc', 
+            margin: 0, 
+            fontSize: '14px', 
+            fontWeight: 600 
+          }}>
+            {formattedTime}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
+  // Fetch sleep data function - can be called to refresh data
+  const fetchSleepData = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/sleep/eileen');
+      const data = await response.json();
+      
+      // Get the last data point for "Last Night's Sleep"
+      const lastPoint = data[data.length - 1];
+      setLastNightData(lastPoint);
+      
+      // Get the last 5 data points
+      const lastFivePoints = data.slice(-5);
+      
+      // Transform the data to match the chart format
+      const transformedData = lastFivePoints.map((point, index) => {
+        // Format date as MM-DD (e.g., "2025-02-03" -> "02-03")
+        const date = new Date(point.night);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const formattedDate = `${month}-${day}`;
+        
+        return {
+          day: formattedDate,
+          hours: point.TotalSleepHours,
+          // Store the full data point for potential future use
+          fullData: point
+        };
+      });
+      
+      setSleepData(transformedData);
+    } catch (error) {
+      console.error('Error fetching sleep data:', error);
+    }
+  };
+
+  useEffect(() => {
     fetchSleepData();
   }, []);
 
@@ -82,6 +112,20 @@ const Dashboard = () => {
       return () => clearTimeout(timer);
     }
   }, [notification]);
+
+  // Auto-close confirmation screen after 3 seconds
+  useEffect(() => {
+    if (confirmationData) {
+      const timer = setTimeout(() => {
+        setConfirmationData(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmationData]);
+
+  const handleCloseConfirmation = () => {
+    setConfirmationData(null);
+  };
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -134,8 +178,18 @@ const Dashboard = () => {
       }
 
       const result = await response.json();
-      showNotification(`Sleep logged successfully! ${result.total_sleep_hours} hours on ${result.night}`, 'success');
       handleCloseModal();
+      
+      // Refresh sleep data to update the chart
+      await fetchSleepData();
+      
+      // Show confirmation screen after a brief delay
+      setTimeout(() => {
+        setConfirmationData({
+          hours: result.total_sleep_hours,
+          date: result.night
+        });
+      }, 300);
     } catch (error) {
       let errorMessage = 'Error logging sleep: ';
       if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
@@ -215,7 +269,7 @@ const Dashboard = () => {
                 tickFormatter={(value) => `${value.toFixed(1)}h`}
                 width={50}
               />
-              <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#4338ca', borderRadius: '12px', color: '#fff' }} />
+              <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
               <Bar dataKey="hours" radius={[4, 4, 4, 4]}>
                 {sleepData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.hours >= 7 ? '#22d3ee' : '#6366f1'} />
@@ -228,11 +282,10 @@ const Dashboard = () => {
 
       <div className="button-group">
         <Button onClick={handleOpenModal}>Log My Sleep</Button>
-        <Button variant="outline">Connect Wearable</Button>
       </div>
 
-      {/* Modal Overlay */}
-      {isModalOpen && (
+      {/* Modal Overlay - rendered via portal to escape transform container */}
+      {isModalOpen && createPortal(
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <GlassCard className="modal-card">
@@ -251,6 +304,9 @@ const Dashboard = () => {
                       type="date"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onFocus={(e) => e.stopPropagation()}
                       required
                     />
                   </GlassCard>
@@ -266,6 +322,9 @@ const Dashboard = () => {
                       max="24"
                       value={sleepHours}
                       onChange={(e) => setSleepHours(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onFocus={(e) => e.stopPropagation()}
                       placeholder="e.g., 7.5"
                       required
                     />
@@ -288,7 +347,29 @@ const Dashboard = () => {
               </form>
             </GlassCard>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Success Confirmation Screen */}
+      {confirmationData && createPortal(
+        <div className="confirmation-overlay" onClick={handleCloseConfirmation}>
+          <div className="confirmation-content" onClick={(e) => e.stopPropagation()}>
+            <GlassCard className="confirmation-card">
+              <div className="confirmation-icon-wrapper">
+                <CheckCircle size={64} className="confirmation-icon" />
+              </div>
+              <h2 className="confirmation-title">Successfully logged your sleep!</h2>
+              <p className="confirmation-message">
+                {formatHours(confirmationData.hours)} on {new Date(confirmationData.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+              <Button onClick={handleCloseConfirmation} className="confirmation-close-btn">
+                Got it!
+              </Button>
+            </GlassCard>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Notification Toast */}
