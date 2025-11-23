@@ -10,13 +10,17 @@ export default function Soundscape() {
   const [durationSeconds, setDurationSeconds] = useState(300); // Default 5 minutes (300 seconds)
   const [selectedVoice, setSelectedVoice] = useState("delilah"); // Default voice
   const [selectedTone, setSelectedTone] = useState("calm"); // Default tone
+  const [selectedPace, setSelectedPace] = useState("normal"); // Default pace
+  const [breathiness, setBreathiness] = useState(0.5); // Default breathiness (0.0-1.0)
+  const [pauses, setPauses] = useState(true); // Default pauses enabled
 
   // Add slider styles
   useEffect(() => {
     const style = document.createElement("style");
-    style.id = "duration-slider-styles";
+    style.id = "slider-styles";
     style.textContent = `
-      #duration-slider::-webkit-slider-runnable-track {
+      #duration-slider::-webkit-slider-runnable-track,
+      input[type="range"]::-webkit-slider-runnable-track {
         width: 100%;
         height: 6px;
         cursor: pointer;
@@ -24,7 +28,8 @@ export default function Soundscape() {
         border-radius: 3px;
       }
       
-      #duration-slider::-moz-range-track {
+      #duration-slider::-moz-range-track,
+      input[type="range"]::-moz-range-track {
         width: 100%;
         height: 6px;
         cursor: pointer;
@@ -33,7 +38,8 @@ export default function Soundscape() {
         border: none;
       }
       
-      #duration-slider::-webkit-slider-thumb {
+      #duration-slider::-webkit-slider-thumb,
+      input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
         width: 18px;
@@ -45,7 +51,8 @@ export default function Soundscape() {
         margin-top: -6px;
       }
       
-      #duration-slider::-moz-range-thumb {
+      #duration-slider::-moz-range-thumb,
+      input[type="range"]::-moz-range-thumb {
         width: 18px;
         height: 18px;
         border-radius: 50%;
@@ -54,21 +61,23 @@ export default function Soundscape() {
         border: 2px solid rgba(255, 255, 255, 0.1);
       }
       
-      #duration-slider::-webkit-slider-thumb:hover {
+      #duration-slider::-webkit-slider-thumb:hover,
+      input[type="range"]::-webkit-slider-thumb:hover {
         background: #D9B88F;
       }
       
-      #duration-slider::-moz-range-thumb:hover {
+      #duration-slider::-moz-range-thumb:hover,
+      input[type="range"]::-moz-range-thumb:hover {
         background: #D9B88F;
       }
     `;
     
-    if (!document.getElementById("duration-slider-styles")) {
+    if (!document.getElementById("slider-styles")) {
       document.head.appendChild(style);
     }
     
     return () => {
-      const existingStyle = document.getElementById("duration-slider-styles");
+      const existingStyle = document.getElementById("slider-styles");
       if (existingStyle) {
         document.head.removeChild(existingStyle);
       }
@@ -103,7 +112,10 @@ export default function Soundscape() {
           duration_seconds: durationSeconds,
           mood: "stressed but trying to relax",
           voice: selectedVoice,
-          tone: selectedTone
+          tone: selectedTone,
+          pace: selectedPace,
+          breathiness: breathiness,
+          pauses: pauses
         }),
       });
 
@@ -273,6 +285,114 @@ export default function Soundscape() {
               Whisper
             </option>
           </select>
+        </div>
+
+        <div style={{ marginTop: 24, width: "100%", padding: "8px 0" }}>
+          <label style={{ display: "block", marginBottom: 12, fontSize: "14px", fontWeight: 500 }}>
+            Pace
+          </label>
+          <select
+            value={selectedPace}
+            onChange={(e) => setSelectedPace(e.target.value)}
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              fontSize: "14px",
+              backgroundColor: "#1C1C1E",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "18px",
+              color: "#FFFFFF",
+              outline: "none",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.6 : 1,
+              appearance: "none",
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 12px center",
+              paddingRight: "36px",
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <option value="normal" style={{ backgroundColor: "#1C1C1E", color: "#FFFFFF" }}>
+              Normal
+            </option>
+            <option value="slow" style={{ backgroundColor: "#1C1C1E", color: "#FFFFFF" }}>
+              Slow
+            </option>
+            <option value="super slow" style={{ backgroundColor: "#1C1C1E", color: "#FFFFFF" }}>
+              Super Slow
+            </option>
+          </select>
+        </div>
+
+        <div style={{ marginTop: 24, width: "100%", padding: "8px 0" }}>
+          <label style={{ display: "block", marginBottom: 12, fontSize: "14px", fontWeight: 500 }}>
+            Breathiness: {(breathiness * 100).toFixed(0)}%
+          </label>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.1}
+            value={breathiness}
+            onChange={(e) => setBreathiness(parseFloat(e.target.value))}
+            disabled={loading}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+            }}
+            style={{
+              width: "100%",
+              height: "20px",
+              borderRadius: "4px",
+              outline: "none",
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? "not-allowed" : "pointer",
+              pointerEvents: loading ? "none" : "auto",
+              WebkitAppearance: "none",
+              MozAppearance: "none",
+              appearance: "none",
+              background: "transparent",
+              position: "relative",
+              zIndex: 10,
+            }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: "12px", color: "#8E8E93" }}>
+            <span>Less</span>
+            <span>More</span>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 24, width: "100%", padding: "8px 0" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 12, fontSize: "14px", fontWeight: 500, cursor: loading ? "not-allowed" : "pointer" }}>
+            <input
+              type="checkbox"
+              checked={pauses}
+              onChange={(e) => setPauses(e.target.checked)}
+              disabled={loading}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+              }}
+              style={{
+                width: "18px",
+                height: "18px",
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.6 : 1,
+              }}
+            />
+            <span>Natural Long Pauses (for drifting)</span>
+          </label>
         </div>
 
         <Button

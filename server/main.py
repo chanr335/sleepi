@@ -53,6 +53,9 @@ class ASMRRequest(BaseModel):
     mood: str = Field(default="tired after a long day", description="Current mood or state of mind")
     voice: str = Field(default="delilah", description="Voice to use: 'delilah', 'vincent', or 'tiza'")
     tone: str = Field(default="calm", description="Tone adjustment: 'calm', 'dreamy', 'storyteller', or 'whisper'")
+    pace: str = Field(default="normal", description="Pace: 'slow', 'super slow', or 'normal'")
+    breathiness: float = Field(default=0.5, description="Breathiness level (0.0-1.0)")
+    pauses: bool = Field(default=True, description="Include natural long pauses for drifting")
 class SleepLogEntry(BaseModel):
     """Structure for logging a new sleep entry. Only night and TotalSleepHours are required."""
     night: str = Field(..., description="Date of the night (e.g., '2025-01-15').")
@@ -120,7 +123,7 @@ def get_sleep_value(username: str, column_name: str):
     return result
 
 
-async def generate_sleep_script(username: str, duration_seconds: int, mood: str) -> str:
+async def generate_sleep_script(username: str, duration_seconds: int, mood: str, pace: str = "normal", pauses: bool = True) -> str:
     """
     Generates an ASMR-style sleep narration script using Gemini.
     Uses the user's sleep data to personalize the script.
@@ -129,6 +132,8 @@ async def generate_sleep_script(username: str, duration_seconds: int, mood: str)
         username: Username to personalize the script for
         duration_seconds: Target duration in seconds (10-1800)
         mood: Current mood or state of mind
+        pace: The pace setting ('slow', 'super slow', or 'normal')
+        pauses: Whether to include natural long pauses
     
     Returns:
         Generated script text
@@ -175,6 +180,26 @@ async def generate_sleep_script(username: str, duration_seconds: int, mood: str)
         minutes = int((duration_seconds % 3600) / 60)
         duration_display = f"{hours} hour{'s' if hours != 1 else ''}" + (f" {minutes} minute{'s' if minutes != 1 else ''}" if minutes > 0 else "")
     
+    # Adjust word count and pace instructions based on pace setting
+    pace_multipliers = {
+        "normal": 1.0,
+        "slow": 0.75,  # Fewer words for slower pace
+        "super slow": 0.5  # Even fewer words for super slow pace
+    }
+    pace_multiplier = pace_multipliers.get(pace.lower(), 1.0)
+    adjusted_word_count = int(target_word_count * pace_multiplier)
+    
+    pace_instructions = {
+        "normal": "Use a normal, relaxed speaking pace.",
+        "slow": "Use a very slow, deliberate pace. Use longer sentences with more pauses.",
+        "super slow": "Use an extremely slow, meditative pace. Use very long pauses between phrases, indicated by ellipses (...) or line breaks."
+    }
+    pace_instruction = pace_instructions.get(pace.lower(), pace_instructions["normal"])
+    
+    pause_instruction = ""
+    if pauses:
+        pause_instruction = "- Include natural, long pauses throughout the script using ellipses (...) or line breaks to allow for drifting and relaxation."
+    
     prompt = f"""
 Create an ASMR-style sleep narration script.
 
@@ -184,13 +209,14 @@ Requirements:
 - Focus on calming imagery, gentle reassurance, and peaceful descriptions.
 - Reflect that they feel: "{mood}".
 {user_context}
-- Duration: The script should be approximately {duration_display} long when read at a calm, slow pace for sleep.
-- Word count: Generate approximately {target_word_count} words. This ensures the audio will be about {duration_display} when converted to speech.
+- Duration: The script should be approximately {duration_display} long when read at the specified pace.
+- Word count: Generate approximately {adjusted_word_count} words. This ensures the audio will be about {duration_display} when converted to speech.
+- Pace: {pace_instruction}
+{pause_instruction}
 - DO NOT include scene directions, markup, or instructions like "whisper", "exhale", "breathe", "soft whisper", etc.
 - DO NOT say phrases like "take a deep breath" or "let's whisper together" - just create soothing content naturally.
 - Only write the actual spoken words that will be read aloud - no meta-commentary about how to speak.
 - Use natural pauses in the text (ellipses or line breaks) but don't describe breathing or speaking techniques.
-- Pace the content slowly and calmly with natural pauses.
 
 Write the script now:
 """
@@ -239,7 +265,7 @@ Write the script now:
         raise HTTPException(status_code=500, detail=f"Failed to generate ASMR script: {str(e)}")
 
 
-async def tts_with_elevenlabs(text: str, voice: str = "delilah", tone: str = "calm") -> bytes:
+async def tts_with_elevenlabs(text: str, voice: str = "delilah", tone: str = "calm", breathiness: float = 0.5) -> bytes:
     """
     Converts text to speech using ElevenLabs API.
     Returns the audio bytes.
@@ -248,6 +274,7 @@ async def tts_with_elevenlabs(text: str, voice: str = "delilah", tone: str = "ca
         text: The text to convert to speech
         voice: The voice to use ('delilah', 'vincent', or 'tiza')
         tone: The tone adjustment ('calm', 'dreamy', 'storyteller', or 'whisper')
+        breathiness: Breathiness level (0.0-1.0)
     """
     # Select voice ID based on voice selection
     voice_id_map = {
@@ -273,6 +300,13 @@ async def tts_with_elevenlabs(text: str, voice: str = "delilah", tone: str = "ca
     }
     
     voice_settings = tone_settings.get(tone.lower(), tone_settings["calm"])
+    
+    # Adjust stability based on breathiness (lower stability = more breathy)
+    # Breathiness 0.0 = no adjustment, 1.0 = maximum breathiness (lower stability)
+    base_stability = voice_settings.get("stability", 0.5)
+    # Reduce stability by up to 0.3 based on breathiness
+    adjusted_stability = max(0.1, base_stability - (breathiness * 0.3))
+    voice_settings["stability"] = adjusted_stability
     
     if not ELEVENLABS_API_KEY:
         raise HTTPException(
@@ -822,11 +856,11 @@ async def create_sleep_asmr(req: ASMRRequest):
     Returns the audio as a streaming MP3 response.
     """
     try:
-        # Generate the sleep script using Gemini
-        script = await generate_sleep_script(req.username, req.duration_seconds, req.mood)
+        # Generate the sleep script using Gemini with pace and pauses
+        script = await generate_sleep_script(req.username, req.duration_seconds, req.mood, req.pace, req.pauses)
         
-        # Convert to speech using ElevenLabs with selected voice and tone
-        audio_bytes = await tts_with_elevenlabs(script, req.voice, req.tone)
+        # Convert to speech using ElevenLabs with selected voice, tone, and breathiness
+        audio_bytes = await tts_with_elevenlabs(script, req.voice, req.tone, req.breathiness)
         
         # Return as streaming audio response
         return StreamingResponse(
