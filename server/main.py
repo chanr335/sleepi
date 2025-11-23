@@ -37,7 +37,7 @@ class ScheduleEntry(BaseModel):
     target_bed_time: str = Field(..., description="The suggested target bedtime (e.g., 10:30 PM).")
     target_wake_time: str = Field(..., description="The suggested target wake time (e.g., 6:30 AM).")
     reasoning: str = Field(..., description="A short explanation for the suggested times.")
-    daily_actions: List[str] = Field(..., description="3 specific, actionable sleep hygiene tips for that day (e.g., 'No caffeine after 2 PM').")
+    daily_actions: List[str] = Field(..., description="5-7 simple, actionable steps that can be easily done at home (e.g., 'Stop drinking coffee after 2:00 PM').")
 
 class ScheduleResponse(BaseModel):
     """The overall structure for the AI's schedule output."""
@@ -480,26 +480,31 @@ async def generate_schedule(username: str):
         2. Improve Sleep Efficiency above 85%.
         3. Suggest a consistent 'Target Bed Time' and 'Target Wake Time' that gradually achieves these goals.
 
-        IMPORTANT: For the 'daily_actions', provide 3 simple, straightforward steps that anyone can follow. 
-        Assume the user has no prior knowledge about sleep science. Each action should be:
-        - Clear and specific (e.g., "Stop drinking coffee after 2 PM" not "Limit caffeine")
-        - Actionable with a specific time or trigger (e.g., "Turn off all screens at 10:15 PM" not "Reduce screen time")
-        - Easy to understand without sleep expertise (e.g., "Set your bedroom temperature to 67°F" not "Optimize thermal regulation")
-        - Practical and immediately implementable
+        CRITICAL REQUIREMENTS for 'daily_actions':
+        - Provide 5-7 simple, actionable steps that can be easily done at home
+        - All steps must use items/resources available in a typical home (no special equipment, apps, or purchases needed)
+        - Each action should be:
+          * Clear and specific with exact times (e.g., "Stop drinking coffee after 2:00 PM" not "Limit caffeine")
+          * Actionable with a specific time or trigger (e.g., "Turn off all screens at 10:15 PM" not "Reduce screen time")
+          * Easy to understand without sleep expertise (e.g., "Set your bedroom temperature to 67°F" not "Optimize thermal regulation")
+          * Practical and immediately implementable with things found at home
+          * Focus on simple, free activities (reading, stretching, adjusting temperature, timing meals/drinks)
         
-        Examples of good daily_actions:
+        Examples of good daily_actions (all home-accessible):
         - "Stop drinking any liquids after 8:00 PM to avoid bathroom trips"
         - "Turn off your phone, TV, and computer at 10:15 PM and put them in another room"
         - "Set your bedroom thermostat to 67°F (19°C) before going to bed"
         - "Do not eat any food after 9:00 PM"
         - "Read a physical book (not on a screen) for 20 minutes starting at 10:25 PM"
+        - "Do 10 minutes of gentle stretching in your bedroom before getting into bed"
+        - "Close all curtains and blinds in your bedroom to make it completely dark"
         
-        Provide a short 'reasoning' for the schedule and 3 specific 'daily_actions' following these guidelines.
+        Provide a short 'reasoning' for each day's schedule and 5-7 specific 'daily_actions' that are all easily doable at home.
         """
 
         # 2. Define the system instruction (Sleep Coach Persona)
         system_instruction = {
-            "parts": [{ "text": "You are an expert Sleep Wellness Coach who explains things simply. Your task is to analyze the provided sleep data and generate a 7-day improvement plan with clear, actionable steps that anyone can follow. Write daily_actions as if explaining to someone who has never researched sleep before. You must strictly adhere to the requested JSON format." }]
+            "parts": [{ "text": "You are an expert Sleep Wellness Coach who explains things simply. Your task is to analyze the provided sleep data and generate a 7-day improvement plan with 5-7 clear, actionable steps per day that can be easily done at home with no special equipment. All steps must be accessible and free to implement. Write daily_actions as if explaining to someone who has never researched sleep before. You must strictly adhere to the requested JSON format." }]
         }
         
         # 3. Define the structured output configuration (using a Gemini-compatible schema)
@@ -519,7 +524,7 @@ async def generate_schedule(username: str):
                             "daily_actions": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "3 specific, actionable sleep hygiene tips for that day (e.g., 'No caffeine after 2 PM')."
+                                "description": "5-7 simple, actionable steps that can be easily done at home (e.g., 'Stop drinking coffee after 2:00 PM')."
                             }
                         },
                         "required": ["day", "target_bed_time", "target_wake_time", "reasoning", "daily_actions"]
