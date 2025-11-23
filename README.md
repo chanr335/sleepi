@@ -1,6 +1,6 @@
 # Sleepi
 
-A sleep tracking and AI-powered sleep coaching application built for Hack Western 2025.
+A sleep leaderboard and AI-powered sleep coaching application built for Hack Western 2025.
 
 ## Project Structure
 
